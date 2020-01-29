@@ -4,10 +4,7 @@
 {% block scripts %}
 <script>
 	urls['state'] = '{% url 'musiq_state' %}';
-	urls['random_suggestion'] = '{% url 'random_suggestion' %}';
-	urls['request_archived_music'] = '{% url 'request_archived_music' %}';
-	urls['request_new_music'] = '{% url 'request_new_music' %}';
-	urls['suggestions'] = '{% url 'suggestions' %}';
+	urls['request_music'] = '{% url 'request_music' %}';
 
 	urls['restart'] = '{% url 'restart_song' %}';
 	urls['seek_backward'] = '{% url 'seek_backward' %}';

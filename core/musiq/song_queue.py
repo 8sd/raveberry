@@ -9,15 +9,13 @@ import core.models
 class SongQueue(models.Manager):
 
     @transaction.atomic
-    def enqueue(self, location, manually_requested):
-        metadata = song_utils.gather_metadata(location)
-
+    def enqueue(self, metadata, manually_requested):
         last = self.last()
         index = 1 if last is None else last.index + 1
         song = self.create(
                 index=index,
                 manually_requested=manually_requested,
-                url=metadata['url'],
+                url=metadata['internal_url'],
                 artist=metadata['artist'],
                 title=metadata['title'],
                 duration=metadata['duration'])

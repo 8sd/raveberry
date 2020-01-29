@@ -9,7 +9,7 @@ from django.conf import settings
 from core.models import Setting
 import core.models as models
 import core.musiq.song_utils as song_utils
-import core.musiq.youtube as youtube
+import core.musiq.youtube2 as youtube
 
 from threading import Semaphore
 from threading import Lock
@@ -22,6 +22,7 @@ import os
 import mpd
 import time
 import random
+
 
 class Player:
     queue_semaphore = None

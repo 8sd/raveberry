@@ -30,10 +30,9 @@ else:
             path('submit_hashtag/', base.submit_hashtag, name='submit_hashtag'),
             path('musiq/', include([
                 path('state/', base.musiq.get_state, name='musiq_state'),
-                path('random_suggestion/', base.musiq.song_provider.random_suggestion, name='random_suggestion'),
-                path('request_archived_music/', base.musiq.request_archived_music, name='request_archived_music'),
-                path('request_new_music/', base.musiq.request_new_music, name='request_new_music'),
-                path('suggestions/', base.musiq.song_provider.get_suggestions, name='suggestions'),
+#                path('random_suggestion/', base.musiq.song_provider.random_suggestion, name='random_suggestion'),
+                path('request_music/', base.musiq.request_music, name='request_music'),
+#                path('suggestions/', base.musiq.song_provider.get_suggestions, name='suggestions'),
 
                 path('restart/', base.musiq.player.restart, name='restart_song'),
                 path('seek_backward/', base.musiq.player.seek_backward, name='seek_backward'),
