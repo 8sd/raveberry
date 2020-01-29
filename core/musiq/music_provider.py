@@ -14,6 +14,7 @@ class MusicProvider:
         self.query = query
         self.key = None
         self.id = None
+        self.placeholder = None
 
         if key is None:
             self.archived = False
@@ -48,8 +49,9 @@ class MusicProvider:
             RequestLog.objects.create(song=archived_song, address=ip)
 
         song = self.musiq.queue.enqueue(self.get_metadata(), manually_requested)
-        self.musiq.placeholder['replaced_by'] = song.id
-        self.musiq.update_state()
+        if self.placeholder:
+            self.placeholder['replaced_by'] = song.id
+            self.musiq.update_state()
         Player.queue_semaphore.release()
 
     def download(self, ip, background=True):

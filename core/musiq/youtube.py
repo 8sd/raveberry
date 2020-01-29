@@ -150,8 +150,8 @@ class YoutubeProvider(MusicProvider):
         error = None
         location = None
 
-        placeholder = {'query': self.query, 'replaced_by': None}
-        self.musiq.placeholders.append(placeholder)
+        self.placeholder = {'query': self.query, 'replaced_by': None}
+        self.musiq.placeholders.append(self.placeholder)
         self.musiq.update_state()
 
         try:

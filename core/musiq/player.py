@@ -103,7 +103,7 @@ class Player:
                     self.musiq.base.logger.info('dequeued on empty list')
                     continue
                 
-                location = song_utils.path_from_url(song.url)
+
                 current_song = models.CurrentSong.objects.create(
                         queue_key=song_id,
                         manually_requested=song.manually_requested,
@@ -112,7 +112,7 @@ class Player:
                         artist=song.artist,
                         title=song.title,
                         duration=song.duration,
-                        location=location)
+                        location=song.url)
 
                 self._handle_autoplay()
 
@@ -133,7 +133,7 @@ class Player:
             self.musiq.update_state()
         
             with self.mpd_command(important=True):
-                self.player.add('file://' + current_song.location)
+                self.player.add(current_song.location)
                 self.player.play()
                 if catch_up is not None:
                     self.player.seekcur(catch_up)
