@@ -15,7 +15,8 @@ class SongQueue(models.Manager):
         song = self.create(
                 index=index,
                 manually_requested=manually_requested,
-                url=metadata['internal_url'],
+                internal_url=metadata['internal_url'],
+                external_url=metadata['external_url'],
                 artist=metadata['artist'],
                 title=metadata['title'],
                 duration=metadata['duration'])

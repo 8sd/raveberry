@@ -89,6 +89,20 @@ class Downloader:
 
 
 class YoutubeProvider(MusicProvider):
+    @staticmethod
+    def create(musiq, internal_url=None):
+        provider = YoutubeProvider(musiq, None, None)
+        provider.id = YoutubeProvider.get_id_from_internal_url(internal_url)
+        return provider
+
+    @staticmethod
+    def get_id_from_external_url(url):
+        return parse_qs(urlparse(url).query)['v'][0]
+
+    @staticmethod
+    def get_id_from_internal_url(url):
+        return os.path.splitext(os.path.basename(url[len('file://'):]))[0]
+
     def __init__(self, musiq, query, key):
         super().__init__(musiq, query, key)
         self.ok_response = 'song queued'
@@ -122,7 +136,7 @@ class YoutubeProvider(MusicProvider):
                 # TODO check for other yt url formats (youtu.be)
             except ArchivedSong.DoesNotExist:
                 return False
-        self.id = self.id_from_url(archived_song.url)
+        self.id = YoutubeProvider.get_id_from_external_url(archived_song.url)
         return os.path.isfile(self.get_path())
 
     def check_downloadable(self):
@@ -189,7 +203,9 @@ class YoutubeProvider(MusicProvider):
 
     def download(self, ip, background=True):
         # check if file was already downloaded and only download if necessary
-        if not os.path.isfile(self.get_path()):
+        if os.path.isfile(self.get_path()):
+            self.enqueue(ip)
+        else:
             thread = threading.Thread(target=self._download, args=(ip,), daemon=True)
             thread.start()
             if not background:
@@ -202,7 +218,9 @@ class YoutubeProvider(MusicProvider):
         parsed = mutagen.easymp4.EasyMP4(self.get_path())
         metadata = dict()
 
-        metadata['url'] = 'https://www.youtube.com/watch?v=' + self.id
+        metadata['internal_url'] = self.get_internal_url()
+        metadata['external_url'] = 'https://www.youtube.com/watch?v=' + self.id
+
         if parsed.tags is not None:
             if 'artist' in parsed.tags:
                 metadata['artist'] = parsed.tags['artist'][0]
@@ -211,13 +229,11 @@ class YoutubeProvider(MusicProvider):
         if 'artist' not in metadata:
             metadata['artist'] = ''
         if 'title' not in metadata:
-            metadata['title'] = metadata['url']
+            metadata['title'] = metadata['external_url']
         if parsed.info is not None and parsed.info.length is not None:
-            metadata['duration'] = self._format_seconds(parsed.info.length)
+            metadata['duration'] = parsed.info.length
         else:
-            metadata['duration'] = '??:??'
-
-        metadata['internal_url'] = self.get_internal_url()
+            metadata['duration'] = -1
 
         return metadata
 
@@ -229,19 +245,6 @@ class YoutubeProvider(MusicProvider):
 
     def get_internal_url(self):
         return 'file://' + self.get_path()
-
-    def _format_seconds(self, seconds):
-        hours, seconds = seconds // 3600, seconds % 3600
-        minutes, seconds = seconds // 60, seconds % 60
-
-        formatted = ''
-        if hours > 0:
-            formatted += '{:02d}:'.format(int(hours))
-        formatted += '{0:02d}:{1:02d}'.format(int(minutes), int(seconds))
-        return formatted
-
-    def id_from_url(url):
-        return parse_qs(urlparse(url).query)['v'][0]
 
 if __name__ == '__main__':
     Downloader().fetch()

@@ -54,3 +54,14 @@ def displayname(artist, title):
         return title
     else:
         return artist + ' – ' + title
+
+def format_seconds(seconds):
+    hours, seconds = seconds // 3600, seconds % 3600
+    minutes, seconds = seconds // 60, seconds % 60
+
+    formatted = ''
+    if hours > 0:
+        formatted += '{:02d}:'.format(int(hours))
+    formatted += '{0:02d}:{1:02d}'.format(int(minutes), int(seconds))
+    return formatted
+

@@ -11,6 +11,7 @@ from django.views.decorators.csrf import csrf_exempt
 from core.models import QueuedSong
 from core.models import CurrentSong
 from core.models import ArchivedSong
+from core.musiq.suggestions import Suggestions
 from core.musiq.player import Player
 from core.musiq.song_queue import SongQueue
 from core.musiq.youtube import SongTooLargeException, YoutubeProvider, NoPlaylistException
@@ -31,6 +32,8 @@ class Musiq:
         self.base = base
 
         self.logger = logging.getLogger('raveberry')
+
+        self.suggestions = Suggestions(self)
 
         self.queue = QueuedSong.objects
         self.placeholders = []
@@ -61,32 +64,8 @@ class Musiq:
                 return HttpResponseBadRequest(provider.error)
             provider.download(ip)
         else:
-            print(ip)
             provider.enqueue(ip)
         return HttpResponse(provider.ok_response)
-
-    def request_archived_music(self, request):
-        key = request.POST.get('key')
-        playlist = request.POST.get('playlist') == 'true'
-        if key is None:
-            return HttpResponseBadRequest()
-        query = request.POST.get('query')
-
-        if playlist:
-            return self.request_playlist(request, self.song_provider.get_archived_playlist, key)
-        else:
-            return self.request_song(request, query, self.song_provider.check_archived_song_accessible, self.song_provider.get_archived_song_location, key)
-
-    def request_new_music(self, request):
-        query = request.POST.get('query')
-        playlist = request.POST.get('playlist') == 'true'
-        if query is None or query == '':
-            return HttpResponseBadRequest()
-
-        if playlist:
-            return self.request_playlist(request, self.song_provider.get_new_playlist, query)
-        else:
-            return self.request_song(request, query, self.song_provider.check_new_song_accessible, self.song_provider.get_new_song_location, query)
 
     def request_radio(self, request):
         try:
@@ -125,6 +104,7 @@ class Musiq:
             all_songs = all_songs.order_by('-votes', 'index')
         for song in all_songs:
             song_dict = model_to_dict(song)
+            song_dict['duration_formatted'] = song_utils.format_seconds(song_dict['duration'])
             song_dict['confirmed'] = True
             # find the query of the placeholder that this song replaces (if any)
             for i, placeholder in enumerate(self.placeholders[:]):
