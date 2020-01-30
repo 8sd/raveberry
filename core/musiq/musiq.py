@@ -117,7 +117,20 @@ class Musiq:
             song_queue.append(song_dict)
         song_queue += [{'title': placeholder['query'], 'confirmed': False} for placeholder in self.placeholders]
 
-        state_dict['current_song'] =  current_song
+        if state_dict['alarm']:
+            state_dict['current_song'] = {
+                'queue_key': -1,
+                'manually_requested': False,
+                'votes': None,
+                'internal_url': '',
+                'external_url': '',
+                'artist': 'Raveberry',
+                'title': 'ALARM!',
+                'duration': 10,
+                'created': ''
+            }
+        else:
+            state_dict['current_song'] =  current_song
         state_dict['paused'] =  self.player.paused()
         state_dict['progress'] =  self.player.progress()
         state_dict['shuffle'] =  self.player.shuffle
