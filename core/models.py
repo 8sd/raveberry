@@ -34,16 +34,10 @@ class ArchivedPlaylist(models.Model):
 
 class PlaylistEntry(models.Model):
     playlist = models.ForeignKey('ArchivedPlaylist', on_delete=models.CASCADE, related_name='entries')
-    song = models.ForeignKey('ArchivedSong', on_delete=models.SET_NULL, blank=True, null=True, related_name='playlist_entries')
     index = models.IntegerField()
     url = models.CharField(max_length=200)
     def __str__(self):
-        s = self.playlist.title + '[' + str(self.index) + ']: '
-        if self.song is not None:
-            s += self.song.displayname()
-        else:
-            s += self.url
-        return s
+        return self.playlist.title + '[' + str(self.index) + ']: ' + self.url
     class Meta:
        ordering = ['playlist', 'index']
 

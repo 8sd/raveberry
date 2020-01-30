@@ -20,13 +20,15 @@ class MusicProvider:
         self.key = key
         self.id = None
         self.placeholder = None
+        self.error = 'error'
+        self.ok_response = 'ok'
 
         if key is None:
             self.archived = False
         else:
             self.archived = True
 
-    def check_cached(self, music_id):
+    def check_cached(self):
         pass
 
     def check_downloadable(self):
@@ -60,9 +62,8 @@ class MusicProvider:
         self.musiq.update_state()
         Player.queue_semaphore.release()
 
-    def download(self, ip, background=True):
-        self.enqueue(ip)
-        pass
+    def download(self, ip, background=True, archive=True, manually_requested=True):
+        self.enqueue(ip, archive=archive, manually_requested=manually_requested)
 
     def get_metadata(self):
         return dict()
