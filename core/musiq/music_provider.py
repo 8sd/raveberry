@@ -48,7 +48,7 @@ class MusicProvider:
         if archive and ip:
             RequestLog.objects.create(song=archived_song, address=ip)
 
-        song = self.musiq.queue.enqueue(self.get_metadata(), manually_requested)
+        song = self.musiq.queue.enqueue(metadata, manually_requested)
         if self.placeholder:
             self.placeholder['replaced_by'] = song.id
             self.musiq.update_state()
