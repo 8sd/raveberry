@@ -14,7 +14,7 @@ from core.models import ArchivedSong
 from core.musiq.suggestions import Suggestions
 from core.musiq.player import Player
 from core.musiq.song_queue import SongQueue
-from core.musiq.youtube import SongTooLargeException, YoutubeProvider, NoPlaylistException
+from core.musiq.youtube import YoutubeProvider, NoPlaylistException, YoutubePlaylistProvider
 import core.musiq.song_utils as song_utils
 import core.state_handler as state_handler
 
@@ -54,15 +54,17 @@ class Musiq:
             ip = ''
 
         if playlist:
-            #provider = YoutubePlaylistProvider()
-            pass
+            provider = YoutubePlaylistProvider(self, query, key)
         else:
             provider = YoutubeProvider(self, query, key)
 
         if not provider.check_cached():
             if not provider.check_downloadable():
+                print('not downloadable')
                 return HttpResponseBadRequest(provider.error)
-            provider.download(ip)
+            if not provider.download(ip):
+                print('not downloaded')
+                return HttpResponseBadRequest(provider.error)
         else:
             provider.enqueue(ip)
         return HttpResponse(provider.ok_response)

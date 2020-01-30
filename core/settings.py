@@ -30,8 +30,8 @@ class Settings:
 
     def __init__(self, base):
         self.base = base
-        self.voting_system = Setting.objects.get_or_create(key='voting_system', defaults={'value': False})[0].value == 'True'
-        self.logging_enabled = Setting.objects.get_or_create(key='logging_enabled', defaults={'value': True})[0].value == 'True'
+        self.voting_system = Setting.objects.get_or_create(key='voting_system', defaults={'value': 'False'})[0].value == 'True'
+        self.logging_enabled = Setting.objects.get_or_create(key='logging_enabled', defaults={'value': 'True'})[0].value == 'True'
         self.people_to_party = int(Setting.objects.get_or_create(key='people_to_party', defaults={'value': 3})[0].value)
         self.alarm_probability = float(Setting.objects.get_or_create(key='alarm_probability', defaults={'value': 0})[0].value)
         self.downvotes_to_kick = int(Setting.objects.get_or_create(key='downvotes_to_kick', defaults={'value': 3})[0].value)
