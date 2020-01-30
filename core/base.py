@@ -66,6 +66,7 @@ class Base:
             'users': self.user_manager.get_count(),
             'visitors': models.Counter.objects.get_or_create(id=1, defaults={'value': 0})[0].value,
             'lights_enabled': self.lights.loop_active.is_set(),
+            'alarm': self.musiq.player.alarm_playing.is_set(),
         }
 
     def get_state(self, request):
