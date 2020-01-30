@@ -82,10 +82,7 @@ class Musiq:
 
     @csrf_exempt
     def post_song(self, request):
-        query = request.POST.get('query')
-        if query is None or query == '':
-            return HttpResponseBadRequest('query cannot be empty')
-        return self.request_song(request, query, self.song_provider.check_new_song_accessible, self.song_provider.get_new_song_location, query)
+        return self.request_music(request)
 
     def index(self, request):
         context = self.base.context(request)
