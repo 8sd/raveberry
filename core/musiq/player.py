@@ -183,10 +183,12 @@ class Player:
                     self.player.playback.play()
                 playing.clear()
                 playing.wait(timeout=1)
+                self.musiq.update_state()
                 self._wait_until_song_end()
 
                 self.musiq.base.lights.alarm_stopped()
                 self.alarm_playing.clear()
+                self.musiq.update_state()
 
     def _wait_until_song_end(self):
         # wait until the song is over
