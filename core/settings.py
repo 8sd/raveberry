@@ -272,7 +272,6 @@ class Settings:
         output = subprocess.check_output(['sudo', '/usr/local/sbin/raveberry/list_available_ssids'])
         output = output.decode()
         ssids = output.split('\n')
-        print(ssids)
         return JsonResponse(ssids[:-1], safe=False)
     @option
     def connect_to_wifi(self, request):

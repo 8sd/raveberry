@@ -1,7 +1,7 @@
 from django.conf import settings
 from django.db import transaction
 from django.db.models import F
-from django.http import HttpResponse
+from django.http import HttpResponse, HttpResponseBadRequest
 
 import core.musiq.song_utils as song_utils
 
@@ -72,9 +72,12 @@ class Downloader:
 
 class YoutubeProvider(MusicProvider):
     @staticmethod
-    def create(musiq, internal_url=None):
+    def create(musiq, internal_url=None, external_url=None):
         provider = YoutubeProvider(musiq, None, None)
-        provider.id = YoutubeProvider.get_id_from_internal_url(internal_url)
+        if internal_url is not None:
+            provider.id = YoutubeProvider.get_id_from_internal_url(internal_url)
+        elif external_url is not None:
+            provider.id = YoutubeProvider.get_id_from_external_url(external_url)
         return provider
 
     @staticmethod
@@ -92,7 +95,9 @@ class YoutubeProvider(MusicProvider):
         self.ydl_opts = get_ydl_opts()
 
     def check_cached(self):
-        if self.key is not None:
+        if self.id is not None:
+            archived_song = ArchivedSong.objects.get(url=self.get_external_url())
+        elif self.key is not None:
             archived_song = ArchivedSong.objects.get(id=self.key)
         else:
             try:
@@ -134,7 +139,7 @@ class YoutubeProvider(MusicProvider):
 
         try:
             with youtube_dl.YoutubeDL(self.ydl_opts) as ydl:
-                ydl.download(['https://www.youtube.com/watch?v=' + self.id])
+                ydl.download([self.get_external_url()])
 
             location = self.get_path()
             base = os.path.splitext(location)[0]
@@ -210,6 +215,41 @@ class YoutubeProvider(MusicProvider):
 
     def get_internal_url(self):
         return 'file://' + self.get_path()
+
+    def get_external_url(self):
+        return 'https://www.youtube.com/watch?v=' + self.id
+
+    def get_suggestion(self):
+        session = requests.session()
+        try:
+            with open(os.path.join(settings.BASE_DIR, 'config/youtube_cookies.pickle'), 'rb') as f:
+                session.cookies.update(pickle.load(f))
+        except FileNotFoundError:
+            pass
+
+        headers = {
+            'User-Agent': youtube_dl.utils.random_user_agent(),
+        }
+        r = session.get(self.get_external_url(), headers=headers)
+
+        with open(os.path.join(settings.BASE_DIR, 'config/youtube_cookies.pickle'), 'wb') as f:
+            pickle.dump(session.cookies, f)
+
+        initial_data = get_initial_data(r.text)
+        url = initial_data['contents']['twoColumnWatchNextResults']['secondaryResults'][
+            'secondaryResults']['results'][0]['compactAutoplayRenderer']['contents'][0][
+            'compactVideoRenderer']['navigationEndpoint']['commandMetadata'][
+            'webCommandMetadata']['url']
+        return 'https://www.youtube.com' + url
+
+    def request_radio(self, ip):
+        radio_id = 'RD' + self.id
+
+        provider = YoutubePlaylistProvider(self.musiq, 'radio for ' + self.id, None)
+        provider.id = radio_id
+        if not provider.download(ip):
+            return HttpResponseBadRequest(provider.error)
+        return HttpResponse('queueing radio')
 
 class YoutubePlaylistProvider(MusicProvider):
 

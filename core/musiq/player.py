@@ -87,7 +87,7 @@ class Player:
                 current_song = models.CurrentSong.objects.get()
 
                 # continue with the current song (approximately) where we last left
-                song_provider = MusicProvider.createProvider(self.musiq, current_song.internal_url)
+                song_provider = MusicProvider.createProvider(self.musiq, internal_url=current_song.internal_url)
                 duration = song_provider.get_metadata()['duration']
                 catch_up = round((timezone.now() - current_song.created).total_seconds() * 1000)
                 if catch_up > duration * 1000:
@@ -165,7 +165,7 @@ class Player:
             current_song.delete()
 
             if self.repeat:
-                song_provider = MusicProvider.createProvider(self.musiq, current_song.internal_url)
+                song_provider = MusicProvider.createProvider(self.musiq, internal_url=current_song.internal_url)
                 self.queue.enqueue(song_provider.get_metadata(), False)
                 self.queue_semaphore.release()
             else:
@@ -183,12 +183,10 @@ class Player:
                     self.player.playback.play()
                 playing.clear()
                 playing.wait(timeout=1)
-                self.musiq.update_state()
                 self._wait_until_song_end()
 
                 self.musiq.base.lights.alarm_stopped()
                 self.alarm_playing.clear()
-                self.musiq.update_state()
 
     def _wait_until_song_end(self):
         # wait until the song is over
@@ -210,24 +208,18 @@ class Player:
                 # if no url was specified, use the one of the current song
                 try:
                     current_song = models.CurrentSong.objects.get()
-                    url = current_song.url
+                    url = current_song.external_url
                 except (models.CurrentSong.DoesNotExist, models.CurrentSong.MultipleObjectsReturned):
                     return
 
+            provider = MusicProvider.createProvider(self.musiq, external_url=url)
             try:
-                suggestion = youtube.get_suggestion(url)
+                suggestion = provider.get_suggestion()
             except Exception as e:
                 self.musiq.base.logger.error('error during suggestions for ' + url)
                 self.musiq.base.logger.error(e)
             else:
-                self.musiq.request_song(
-                        None,
-                        suggestion, 
-                        self.musiq.song_provider.check_new_song_accessible,
-                        self.musiq.song_provider.get_new_song_location,
-                        suggestion,
-                        archive=False)
-
+                self.musiq._request_music('', suggestion, None, False, archive=False, manually_requested=False)
 
 
     # wrapper method for our mpd client that pings the mpd server before any command and reconnects if necessary. also catches protocol errors
@@ -365,7 +357,7 @@ class Player:
             # if we removed a song and it was added by autoplay,
             # we want it to be the new basis for autoplay
             if not removed.manually_requested:
-                self._handle_autoplay(removed.url)
+                self._handle_autoplay(removed.external_url)
             else:
                 self._handle_autoplay()
         except models.QueuedSong.DoesNotExist:

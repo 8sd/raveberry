@@ -11,6 +11,7 @@ from django.views.decorators.csrf import csrf_exempt
 from core.models import QueuedSong
 from core.models import CurrentSong
 from core.models import ArchivedSong
+from core.musiq.music_provider import MusicProvider
 from core.musiq.suggestions import Suggestions
 from core.musiq.player import Player
 from core.musiq.song_queue import SongQueue
@@ -41,10 +42,26 @@ class Musiq:
         self.player = Player(self)
         self.player.start()
 
+    def _request_music(self, ip, query, key, playlist, archive=True, manually_requested=True):
+        if playlist:
+            provider = YoutubePlaylistProvider(self, query, key)
+        else:
+            provider = YoutubeProvider(self, query, key)
+
+        if not provider.check_cached():
+            if not provider.check_downloadable():
+                return HttpResponseBadRequest(provider.error)
+            if not provider.download(ip, archive=archive, manually_requested=manually_requested):
+                return HttpResponseBadRequest(provider.error)
+        else:
+            provider.enqueue(ip, archive=archive, manually_requested=manually_requested)
+        return HttpResponse(provider.ok_response)
+
     def request_music(self, request):
         key = request.POST.get('key')
         playlist = request.POST.get('playlist') == 'true'
         query = request.POST.get('query')
+
         # only get ip on user requests
         if self.base.settings.logging_enabled:
             ip, is_routable = ipware.get_client_ip(request)
@@ -53,34 +70,23 @@ class Musiq:
         else:
             ip = ''
 
-        if playlist:
-            provider = YoutubePlaylistProvider(self, query, key)
-        else:
-            provider = YoutubeProvider(self, query, key)
-
-        if not provider.check_cached():
-            if not provider.check_downloadable():
-                print('not downloadable')
-                return HttpResponseBadRequest(provider.error)
-            if not provider.download(ip):
-                print('not downloaded')
-                return HttpResponseBadRequest(provider.error)
-        else:
-            provider.enqueue(ip)
-        return HttpResponse(provider.ok_response)
+        return self._request_music(ip, query, key, playlist)
 
     def request_radio(self, request):
+        # only get ip on user requests
+        if self.base.settings.logging_enabled:
+            ip, is_routable = ipware.get_client_ip(request)
+            if ip is None:
+                ip = ''
+        else:
+            ip = ''
+
         try:
             current_song = CurrentSong.objects.get()
         except CurrentSong.DoesNotExist:
             return HttpResponseBadRequest('Need a song to play the radio')
-        song_id = song_utils.id_from_url(current_song.url)
-        radio_id = 'RD' + song_id
-        response = self.request_playlist(request, self.song_provider.get_new_playlist, radio_id)
-        if type(response) == HttpResponse:
-            return HttpResponse('Queuing radio')
-        else:
-            return response
+        provider = MusicProvider.createProvider(self, external_url=current_song.external_url)
+        return provider.request_radio(ip)
 
     @csrf_exempt
     def post_song(self, request):

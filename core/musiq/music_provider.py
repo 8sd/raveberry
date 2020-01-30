@@ -9,10 +9,11 @@ from django.db.models import F
 class MusicProvider:
 
     @staticmethod
-    def createProvider(musiq, internal_url):
+    def createProvider(musiq, internal_url=None, external_url=None):
         from core.musiq.youtube import YoutubeProvider
-        if internal_url.startswith('file://'):
-            return YoutubeProvider.create(musiq, internal_url=internal_url)
+        if (internal_url is not None and internal_url.startswith('file://')) \
+                or (external_url is not None and external_url.startswith('https://www.youtube.com/')):
+            return YoutubeProvider.create(musiq, internal_url=internal_url, external_url=external_url)
 
     def __init__(self, musiq, query, key):
         self.musiq = musiq
@@ -64,6 +65,9 @@ class MusicProvider:
 
     def download(self, ip, background=True, archive=True, manually_requested=True):
         self.enqueue(ip, archive=archive, manually_requested=manually_requested)
+
+    def get_suggestion(self):
+        pass
 
     def get_metadata(self):
         return dict()
