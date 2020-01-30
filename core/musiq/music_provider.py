@@ -12,7 +12,7 @@ class MusicProvider:
     def __init__(self, musiq, query, key):
         self.musiq = musiq
         self.query = query
-        self.key = None
+        self.key = key
         self.id = None
         self.placeholder = None
 
