@@ -57,7 +57,7 @@ class MusicProvider:
         song = self.musiq.queue.enqueue(metadata, manually_requested)
         if self.placeholder:
             self.placeholder['replaced_by'] = song.id
-            self.musiq.update_state()
+        self.musiq.update_state()
         Player.queue_semaphore.release()
 
     def download(self, ip, background=True):

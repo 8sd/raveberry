@@ -22,6 +22,7 @@ import os
 import time
 import random
 import mopidy.core
+import mopidy.backend
 from mopidyapi import MopidyAPI
 
 from core.musiq.music_provider import MusicProvider
@@ -42,8 +43,10 @@ class Player:
         self.alarm_playing = Event()
 
         self.player = MopidyAPI()
+        self.player_backend = mopidy.backend.Backend()
         self.player_lock = Lock()
         with self.mpd_command(important=True):
+            self.player.playback.stop()
             self.player.tracklist.clear()
             # make songs disappear from tracklist after being played
             self.player.tracklist.set_consume(True)
@@ -57,6 +60,8 @@ class Player:
 
     def progress(self):
         # the state is either pause or stop
+        current_position = 0
+        duration = 1
         with self.mpd_command() as allowed:
             if allowed:
                 current_position = self.player.playback.get_time_position()
@@ -85,6 +90,8 @@ class Player:
                 song_provider = MusicProvider.createProvider(self.musiq, current_song.internal_url)
                 duration = song_provider.get_metadata()['duration']
                 catch_up = round((timezone.now() - current_song.created).total_seconds() * 1000)
+                if catch_up > duration * 1000:
+                    catch_up = -1
             else:
                 self.queue_semaphore.acquire()
 
@@ -137,24 +144,29 @@ class Player:
 
             self.musiq.update_state()
 
+            playing = Event()
+            @self.player.on_event('playback_state_changed')
+            def on_playback_state_changed(event):
+                playing.set()
+
             with self.mpd_command(important=True):
                 self.player.tracklist.add(uris=[current_song.internal_url])
                 self.player.playback.play()
-                if catch_up is not None:
+                # mopidy can only seek when the song is playing
+                playing.wait(timeout=1)
+                if catch_up is not None and catch_up >= 0:
                     self.player.playback.seek(catch_up)
-            print(self.progress())
-            print(self.player.playback.get_state())
 
             self.musiq.update_state()
 
-            print('waiting')
-            self._wait_until_song_end()
-            print('waited')
+            if catch_up is None or catch_up >= 0:
+                self._wait_until_song_end()
 
             current_song.delete()
 
             if self.repeat:
-                self.queue.enqueue(current_song.location, current_song.manually_requested)
+                song_provider = MusicProvider.createProvider(self.musiq, current_song.internal_url)
+                self.queue.enqueue(song_provider.get_metadata(), False)
                 self.queue_semaphore.release()
             else:
                 # the song left the queue, we can delete big downloads
@@ -176,23 +188,17 @@ class Player:
 
     def _wait_until_song_end(self):
         # wait until the song is over
-        playback_ended = Event()
+        '''playback_ended = Event()
         @self.player.on_event('tracklist_changed')
         def on_tracklist_change(event):
             playback_ended.set()
-        playback_ended.wait()
-        '''
+        playback_ended.wait()'''
         while True:
             with self.mpd_command() as allowed:
                 if allowed:
-                    try:
-                        print(self.player.status())
-                        if self.player.status()['state'] == 'stop':
-                            break
-                    except mpd.base.ConnectionError:
-                        pass
-            time.sleep(0.1) 
-            '''
+                    if self.player.playback.get_state() == mopidy.core.PlaybackState.STOPPED:
+                        break
+            time.sleep(0.1)
 
     def _handle_autoplay(self, url=None):
         if self.autoplay and models.QueuedSong.objects.count() == 0:
@@ -223,37 +229,19 @@ class Player:
     # wrapper method for our mpd client that pings the mpd server before any command and reconnects if necessary. also catches protocol errors
     @contextmanager
     def mpd_command(self, important=False):
-        yield True
-        '''timeout = 3
+        timeout = 3
         if important:
             timeout = -1
         if self.player_lock.acquire(timeout=timeout):
-            try:
-                self.player.ping()
-            except (mpd.base.ConnectionError, ConnectionResetError):
-                for _ in range(5):
-                    try:
-                        self.player.connect('localhost', 6600)
-                        break
-                    except mpd.base.ConnectionError:
-                        # Already connected
-                        break
-                    except (ConnectionResetError, ConnectionRefusedError):
-                        time.sleep(0.5)
-            except mpd.base.ProtocolError as e:
-                print('protocol error during ping, continuing')
-                print(e)
-                pass
-            try:
-                yield True
-            except mpd.base.ProtocolError as e:
-                print(e)
-                raise e
-            finally:
-                self.player_lock.release()
+            if not self.player_backend.ping():
+                # mopidy is disconnected. this never happened during testing, mopidy reconnects itself most of the time
+                # maybe reconnect or restart?
+               pass
+            yield True
+            self.player_lock.release()
         else:
+            print('not allowed')
             yield False
-            '''
 
     # every control changes the views state and returns an empty response
     def control(func):
@@ -339,7 +327,6 @@ class Player:
         self.volume = float(request.POST.get('value'))
         with self.mpd_command() as allowed:
             if allowed:
-                print('set volume')
                 self.player.mixer.set_volume(round(self.volume * 100))
     @disabled_when_voting
     @control
