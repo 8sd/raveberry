@@ -11,6 +11,7 @@ from django.views.decorators.csrf import csrf_exempt
 from core.models import QueuedSong
 from core.models import CurrentSong
 from core.models import ArchivedSong
+from core.musiq.suggestions import Suggestions
 from core.musiq.player import Player
 from core.musiq.song_queue import SongQueue
 from core.musiq.youtube import SongTooLargeException, YoutubeProvider, NoPlaylistException
@@ -31,6 +32,8 @@ class Musiq:
         self.base = base
 
         self.logger = logging.getLogger('raveberry')
+
+        self.suggestions = Suggestions(self)
 
         self.queue = QueuedSong.objects
         self.placeholders = []

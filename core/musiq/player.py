@@ -45,13 +45,13 @@ class Player:
         self.player = MopidyAPI()
         self.player_backend = mopidy.backend.Backend()
         self.player_lock = Lock()
-        with self.mpd_command(important=True):
+        with self.mopidy_command(important=True):
             self.player.playback.stop()
             self.player.tracklist.clear()
             # make songs disappear from tracklist after being played
             self.player.tracklist.set_consume(True)
 
-        with self.mpd_command(important=True):
+        with self.mopidy_command(important=True):
             #currentsong = self.player.currentsong()
             self.volume = self.player.mixer.get_volume() / 100
 
@@ -62,7 +62,7 @@ class Player:
         # the state is either pause or stop
         current_position = 0
         duration = 1
-        with self.mpd_command() as allowed:
+        with self.mopidy_command() as allowed:
             if allowed:
                 current_position = self.player.playback.get_time_position()
                 current_track = self.player.playback.get_current_track()
@@ -73,7 +73,7 @@ class Player:
     def paused(self):
         # the state is either pause or stop
         paused = False
-        with self.mpd_command() as allowed:
+        with self.mopidy_command() as allowed:
             if allowed:
                 paused = self.player.playback.get_state() != mopidy.core.PlaybackState.PLAYING
         return paused
@@ -149,7 +149,7 @@ class Player:
             def on_playback_state_changed(event):
                 playing.set()
 
-            with self.mpd_command(important=True):
+            with self.mopidy_command(important=True):
                 self.player.tracklist.add(uris=[current_song.internal_url])
                 self.player.playback.play()
                 # mopidy can only seek when the song is playing
@@ -178,9 +178,11 @@ class Player:
                 self.alarm_playing.set()
                 self.musiq.base.lights.alarm_started()
 
-                with self.mpd_command(important=True):
+                with self.mopidy_command(important=True):
                     self.player.tracklist.add(uris=['file://'+os.path.join(settings.BASE_DIR, 'config/sounds/alarm.m4a')])
                     self.player.playback.play()
+                playing.clear()
+                playing.wait(timeout=1)
                 self._wait_until_song_end()
 
                 self.musiq.base.lights.alarm_stopped()
@@ -194,7 +196,7 @@ class Player:
             playback_ended.set()
         playback_ended.wait()'''
         while True:
-            with self.mpd_command() as allowed:
+            with self.mopidy_command() as allowed:
                 if allowed:
                     if self.player.playback.get_state() == mopidy.core.PlaybackState.STOPPED:
                         break
@@ -228,7 +230,7 @@ class Player:
 
     # wrapper method for our mpd client that pings the mpd server before any command and reconnects if necessary. also catches protocol errors
     @contextmanager
-    def mpd_command(self, important=False):
+    def mopidy_command(self, important=False):
         timeout = 3
         if important:
             timeout = -1
@@ -266,13 +268,13 @@ class Player:
     @disabled_when_voting
     @control
     def restart(self, request):
-        with self.mpd_command() as allowed:
+        with self.mopidy_command() as allowed:
             if allowed:
                 self.player.playback.seek(0)
     @disabled_when_voting
     @control
     def seek_backward(self, request):
-        with self.mpd_command() as allowed:
+        with self.mopidy_command() as allowed:
             if allowed:
                 current_position = self.player.playback.get_time_position()
                 self.player.playback.seek(current_position - self.SEEK_DISTANCE)
@@ -280,26 +282,26 @@ class Player:
     @control
     def play(self, request):
         # unlikely race condition possible. but its impact is not worth the effort to prevent it
-        with self.mpd_command() as allowed:
+        with self.mopidy_command() as allowed:
             if allowed:
                 self.player.playback.play()
     @disabled_when_voting
     @control
     def pause(self, request):
-        with self.mpd_command() as allowed:
+        with self.mopidy_command() as allowed:
             if allowed:
                 self.player.playback.pause()
     @disabled_when_voting
     @control
     def seek_forward(self, request):
-        with self.mpd_command() as allowed:
+        with self.mopidy_command() as allowed:
             if allowed:
                 current_position = self.player.playback.get_time_position()
                 self.player.playback.seek(current_position + self.SEEK_DISTANCE)
     @disabled_when_voting
     @control
     def skip(self, request):
-        with self.mpd_command() as allowed:
+        with self.mopidy_command() as allowed:
             if allowed:
                 self.player.playback.next()
     @disabled_when_voting
@@ -325,7 +327,7 @@ class Player:
     @control
     def set_volume(self, request):
         self.volume = float(request.POST.get('value'))
-        with self.mpd_command() as allowed:
+        with self.mopidy_command() as allowed:
             if allowed:
                 self.player.mixer.set_volume(round(self.volume * 100))
     @disabled_when_voting
@@ -333,7 +335,7 @@ class Player:
     def remove_all(self, request):
         if not self.musiq.base.user_manager.is_admin(request.user):
             return HttpResponseForbidden()
-        with self.mpd_command() as allowed:
+        with self.mopidy_command() as allowed:
             if allowed:
                 with transaction.atomic():
                     count = self.queue.count()
@@ -408,7 +410,7 @@ class Player:
         try:
             current_song = models.CurrentSong.objects.get()
             if current_song.queue_key == key and current_song.votes <= -self.musiq.base.settings.downvotes_to_kick:
-                with self.mpd_command() as allowed:
+                with self.mopidy_command() as allowed:
                     if allowed:
                         self.player.playback.next()
         except models.CurrentSong.DoesNotExist:
