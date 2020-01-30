@@ -182,10 +182,9 @@ class YoutubeProvider(MusicProvider):
             self.musiq.logger.error('accessible video could not be downloaded: ' + str(self.id))
             self.musiq.logger.error(error)
             self.musiq.logger.error('location: ' + str(location))
-            self.musiq.placeholders.remove(placeholder)
+            self.musiq.placeholders.remove(self.placeholder)
             self.musiq.update_state()
             return
-        print(ip)
         self.enqueue(ip)
 
     def download(self, ip, background=True):
