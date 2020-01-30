@@ -90,8 +90,10 @@ function updateBaseState(newState) {
 		$('#navbar_icon').css('visibility', 'visible');
 		if (newState.alarm) {
 			$('body').addClass('alarm')
+			$('#progress_bar').addClass('alarm')
 		} else {
 			$('body').removeClass('alarm')
+			$('#progress_bar').removeClass('alarm')
 		}
 	} else {
 		$('#favicon').attr('href', urls['dark_icon']);
