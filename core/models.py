@@ -63,13 +63,14 @@ class QueuedSong(models.Model):
     index = models.IntegerField()
     manually_requested = models.BooleanField()
     votes = models.IntegerField(default=0)
-    url = models.CharField(max_length=200)
+    internal_url = models.CharField(max_length=200)
+    external_url = models.CharField(max_length=200, blank=True)
     artist = models.CharField(max_length=1000)
     title = models.CharField(max_length=1000)
-    duration = models.CharField(max_length=20)
+    duration = models.IntegerField()
     objects = core.musiq.song_queue.SongQueue()
     def __str__(self):
-        return str(self.index) + ': ' + self.title + ' (' + self.url + ')'
+        return str(self.index) + ': ' + self.title + ' (' + self.internal_url + ')'
     def displayname(self):
         return song_utils.displayname(self.artist, self.title)
     class Meta:
@@ -79,14 +80,14 @@ class CurrentSong(models.Model):
     queue_key = models.IntegerField()
     manually_requested = models.BooleanField()
     votes = models.IntegerField()
-    url = models.CharField(max_length=200)
+    internal_url = models.CharField(max_length=200)
+    external_url = models.CharField(max_length=200, blank=True)
     artist = models.CharField(max_length=1000)
     title = models.CharField(max_length=1000)
-    duration = models.CharField(max_length=20)
-    location = models.CharField(max_length=1000)
+    duration = models.IntegerField()
     created = models.DateTimeField(auto_now_add=True)
     def __str__(self):
-        return self.title + ' (' + self.url + ')'
+        return self.title + ' (' + self.internal_url + ')'
     def displayname(self):
         return song_utils.displayname(self.artist, self.title)
 

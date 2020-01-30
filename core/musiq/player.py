@@ -19,16 +19,19 @@ from datetime import datetime
 from functools import wraps
 from contextlib import contextmanager
 import os
-import mpd
 import time
 import random
+import mopidy.core
+from mopidyapi import MopidyAPI
+
+from core.musiq.music_provider import MusicProvider
 
 
 class Player:
     queue_semaphore = None
 
     def __init__(self, musiq):
-        self.SEEK_DISTANCE = 10
+        self.SEEK_DISTANCE = 10 * 1000
         self.shuffle = Setting.objects.get_or_create(key='shuffle', defaults={'value': False})[0].value == 'True'
         self.repeat = Setting.objects.get_or_create(key='repeat', defaults={'value': False})[0].value == 'True'
         self.autoplay = Setting.objects.get_or_create(key='autoplay', defaults={'value': False})[0].value == 'True'
@@ -38,36 +41,36 @@ class Player:
         Player.queue_semaphore = Semaphore(self.queue.count())
         self.alarm_playing = Event()
 
-        self.player = mpd.MPDClient()
+        self.player = MopidyAPI()
         self.player_lock = Lock()
         with self.mpd_command(important=True):
-            self.player.clear()
+            self.player.tracklist.clear()
+            # make songs disappear from tracklist after being played
+            self.player.tracklist.set_consume(True)
 
         with self.mpd_command(important=True):
-            status = self.player.status()
-            currentsong = self.player.currentsong()
-            self.volume = int(status['volume']) / 100
+            #currentsong = self.player.currentsong()
+            self.volume = self.player.mixer.get_volume() / 100
 
     def start(self):
         Thread(target=self._loop, daemon=True).start()
 
     def progress(self):
         # the state is either pause or stop
-        status = {}
-        currentsong = {}
         with self.mpd_command() as allowed:
             if allowed:
-                status = self.player.status()
-                currentsong = self.player.currentsong()
-        if 'elapsed' not in status or 'time' not in currentsong:
-            return 0
-        return 100 * float(status['elapsed']) / float(currentsong['time'])
+                current_position = self.player.playback.get_time_position()
+                current_track = self.player.playback.get_current_track()
+                if current_track is None:
+                    return 0
+                duration = current_track.length
+        return 100 * current_position / duration
     def paused(self):
         # the state is either pause or stop
         paused = False
         with self.mpd_command() as allowed:
             if allowed:
-                paused = self.player.status()['state'] != 'play'
+                paused = self.player.playback.get_state() != mopidy.core.PlaybackState.PLAYING
         return paused
 
     def _loop(self):
@@ -79,8 +82,9 @@ class Player:
                 current_song = models.CurrentSong.objects.get()
 
                 # continue with the current song (approximately) where we last left
-                duration = song_utils.get_duration(current_song.location)
-                catch_up = (timezone.now() - current_song.created).total_seconds()
+                song_provider = MusicProvider.createProvider(self.musiq, current_song.internal_url)
+                duration = song_provider.get_metadata()['duration']
+                catch_up = round((timezone.now() - current_song.created).total_seconds() * 1000)
             else:
                 self.queue_semaphore.acquire()
 
@@ -108,16 +112,17 @@ class Player:
                         queue_key=song_id,
                         manually_requested=song.manually_requested,
                         votes=song.votes,
-                        url=song.url,
+                        internal_url=song.internal_url,
+                        external_url=song.external_url,
                         artist=song.artist,
                         title=song.title,
                         duration=song.duration,
-                        location=song.url)
+                )
 
                 self._handle_autoplay()
 
                 try:
-                    archived_song = models.ArchivedSong.objects.get(url=current_song.url)
+                    archived_song = models.ArchivedSong.objects.get(url=current_song.external_url)
                     if self.musiq.base.settings.voting_system:
                         votes = current_song.votes
                     else:
@@ -131,22 +136,21 @@ class Player:
                     pass
 
             self.musiq.update_state()
-        
+
             with self.mpd_command(important=True):
-                self.player.add(current_song.location)
-                self.player.play()
+                self.player.tracklist.add(uris=[current_song.internal_url])
+                self.player.playback.play()
                 if catch_up is not None:
-                    self.player.seekcur(catch_up)
+                    self.player.playback.seek(catch_up)
+            print(self.progress())
+            print(self.player.playback.get_state())
+
             self.musiq.update_state()
 
+            print('waiting')
             self._wait_until_song_end()
+            print('waited')
 
-            with self.mpd_command(important=True):
-                try:
-                    self.player.delete(0)
-                except mpd.base.CommandError:
-                    # catch Bad song index if there is no song
-                    pass
             current_song.delete()
 
             if self.repeat:
@@ -154,7 +158,7 @@ class Player:
                 self.queue_semaphore.release()
             else:
                 # the song left the queue, we can delete big downloads
-                song_utils.decide_deletion(current_song.location)
+                song_utils.decide_deletion(current_song.internal_url)
 
             self.musiq.update_state()
 
@@ -163,26 +167,32 @@ class Player:
                 self.musiq.base.lights.alarm_started()
 
                 with self.mpd_command(important=True):
-                    self.player.add('file://'+os.path.join(settings.BASE_DIR, 'config/sounds/alarm.m4a'))
-                    self.player.play()
+                    self.player.tracklist.add(uris=['file://'+os.path.join(settings.BASE_DIR, 'config/sounds/alarm.m4a')])
+                    self.player.playback.play()
                 self._wait_until_song_end()
 
                 self.musiq.base.lights.alarm_stopped()
-                with self.mpd_command(important=True):
-                    self.player.delete(0)
                 self.alarm_playing.clear()
 
     def _wait_until_song_end(self):
         # wait until the song is over
+        playback_ended = Event()
+        @self.player.on_event('tracklist_changed')
+        def on_tracklist_change(event):
+            playback_ended.set()
+        playback_ended.wait()
+        '''
         while True:
             with self.mpd_command() as allowed:
                 if allowed:
                     try:
+                        print(self.player.status())
                         if self.player.status()['state'] == 'stop':
                             break
                     except mpd.base.ConnectionError:
                         pass
             time.sleep(0.1) 
+            '''
 
     def _handle_autoplay(self, url=None):
         if self.autoplay and models.QueuedSong.objects.count() == 0:
@@ -213,7 +223,8 @@ class Player:
     # wrapper method for our mpd client that pings the mpd server before any command and reconnects if necessary. also catches protocol errors
     @contextmanager
     def mpd_command(self, important=False):
-        timeout = 3
+        yield True
+        '''timeout = 3
         if important:
             timeout = -1
         if self.player_lock.acquire(timeout=timeout):
@@ -222,15 +233,8 @@ class Player:
             except (mpd.base.ConnectionError, ConnectionResetError):
                 for _ in range(5):
                     try:
-                        self.player.connect('/var/run/mpd/socket', 6600)
+                        self.player.connect('localhost', 6600)
                         break
-                    except FileNotFoundError:
-                        # system mpd is not running, try user mpd
-                        try:
-                            self.player.connect(os.path.expanduser('~/.mpd/socket'), 6600)
-                        except mpd.base.ConnectionError:
-                            # Already connected
-                            break
                     except mpd.base.ConnectionError:
                         # Already connected
                         break
@@ -249,6 +253,7 @@ class Player:
                 self.player_lock.release()
         else:
             yield False
+            '''
 
     # every control changes the views state and returns an empty response
     def control(func):
@@ -275,45 +280,40 @@ class Player:
     def restart(self, request):
         with self.mpd_command() as allowed:
             if allowed:
-                if self.player.status()['state'] != 'stop':
-                    self.player.seekcur(0)
+                self.player.playback.seek(0)
     @disabled_when_voting
     @control
     def seek_backward(self, request):
         with self.mpd_command() as allowed:
             if allowed:
-                status = self.player.status()
-                if 'elapsed' in status:
-                    self.player.seekcur(float(status['elapsed']) - self.SEEK_DISTANCE)
+                current_position = self.player.playback.get_time_position()
+                self.player.playback.seek(current_position - self.SEEK_DISTANCE)
     @disabled_when_voting
     @control
     def play(self, request):
         # unlikely race condition possible. but its impact is not worth the effort to prevent it
         with self.mpd_command() as allowed:
             if allowed:
-                if self.player.status()['state'] == 'pause':
-                    self.player.pause()
+                self.player.playback.play()
     @disabled_when_voting
     @control
     def pause(self, request):
         with self.mpd_command() as allowed:
             if allowed:
-                if self.player.status()['state'] == 'play':
-                    self.player.pause()
+                self.player.playback.pause()
     @disabled_when_voting
     @control
     def seek_forward(self, request):
         with self.mpd_command() as allowed:
             if allowed:
-                status = self.player.status()
-                if 'elapsed' in status:
-                    self.player.seekcur(float(status['elapsed']) + self.SEEK_DISTANCE)
+                current_position = self.player.playback.get_time_position()
+                self.player.playback.seek(current_position + self.SEEK_DISTANCE)
     @disabled_when_voting
     @control
     def skip(self, request):
         with self.mpd_command() as allowed:
             if allowed:
-                self.player.stop()
+                self.player.playback.next()
     @disabled_when_voting
     @control
     def set_shuffle(self, request):
@@ -339,12 +339,8 @@ class Player:
         self.volume = float(request.POST.get('value'))
         with self.mpd_command() as allowed:
             if allowed:
-                try:
-                    self.player.setvol(round(self.volume * 100))
-                except mpd.base.CommandError:
-                    # sometimes the volume can't be set
-                    self.musiq.base.logger.info('could not set volume')
-                    pass
+                print('set volume')
+                self.player.mixer.set_volume(round(self.volume * 100))
     @disabled_when_voting
     @control
     def remove_all(self, request):
@@ -427,7 +423,7 @@ class Player:
             if current_song.queue_key == key and current_song.votes <= -self.musiq.base.settings.downvotes_to_kick:
                 with self.mpd_command() as allowed:
                     if allowed:
-                        self.player.stop()
+                        self.player.playback.next()
         except models.CurrentSong.DoesNotExist:
             pass
 

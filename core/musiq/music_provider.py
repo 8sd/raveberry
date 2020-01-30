@@ -2,13 +2,18 @@ from core.models import ArchivedSong
 from core.models import ArchivedQuery
 from core.models import RequestLog
 
-from core.musiq.player import Player
-
 from django.db import transaction
 from django.db.models import F
 
 
 class MusicProvider:
+
+    @staticmethod
+    def createProvider(musiq, internal_url):
+        from core.musiq.youtube import YoutubeProvider
+        if internal_url.startswith('file://'):
+            return YoutubeProvider.create(musiq, internal_url=internal_url)
+
     def __init__(self, musiq, query, key):
         self.musiq = musiq
         self.query = query
@@ -21,7 +26,6 @@ class MusicProvider:
         else:
             self.archived = True
 
-
     def check_cached(self, music_id):
         pass
 
@@ -29,14 +33,16 @@ class MusicProvider:
         pass
 
     def enqueue(self, ip, archive=True, manually_requested=True):
+        from core.musiq.player import Player
+
         metadata = self.get_metadata()
 
         # Increase counter of song/playlist
         with transaction.atomic():
-            queryset = ArchivedSong.objects.filter(url=metadata['url'])
+            queryset = ArchivedSong.objects.filter(url=metadata['external_url'])
             if queryset.count() == 0:
                 initial_counter = 1 if archive else 0
-                archived_song = ArchivedSong.objects.create(url=metadata['url'], artist=metadata['artist'], title=metadata['title'], counter=initial_counter)
+                archived_song = ArchivedSong.objects.create(url=metadata['external_url'], artist=metadata['artist'], title=metadata['title'], counter=initial_counter)
             else:
                 if archive:
                     queryset.update(counter=F('counter')+1)
