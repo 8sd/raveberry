@@ -16,8 +16,12 @@
 
 @keyframes fade {
 	  0% {background-color: theme-color("background");}
+	/*
 	 18% {background-color: theme-color("red");}
 	 48% {background-color: theme-color("red");}
+	 */
+	 18% {background-color: red;}
+	 48% {background-color: red;}
 	 80% {background-color: theme-color("background");}
 	100% {background-color: theme-color("background");}
 }
