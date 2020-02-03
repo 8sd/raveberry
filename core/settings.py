@@ -264,7 +264,6 @@ class Settings:
         if error:
             return HttpResponseBadRequest(error)
 
-        #self.bluetoothctl = subprocess.call(["pactl set-default-sink 3"], stdin=subprocess.PIPE, stdout=subprocess.PIPE)
         # parse the sink number of the bluetooth device from pactl
         sinks = subprocess.check_output('pactl list short sinks'.split(), universal_newlines=True)
         bluetooth_sink = '2'
@@ -272,14 +271,14 @@ class Settings:
             if 'bluez' in sink:
                 bluetooth_sink = sink[0]
                 break
-        subprocess.call(f'pactl set-default-sink {bluetooth_sink}'.split())
+        subprocess.call(f'pactl set-default-sink {bluetooth_sink}'.split(), stdout=subprocess.DEVNULL)
         # restart mopidy to apply audio device change
         subprocess.call(['sudo', '/usr/local/sbin/raveberry/restart_mopidy'])
 
         return HttpResponse('Connected')
     @option
     def disconnect_bluetooth(self, request):
-        subprocess.call('pactl set-default-sink 0'.split())
+        subprocess.call('pactl set-default-sink 0'.split(), stdout=subprocess.DEVNULL)
         # restart mopidy to apply audio device change
         subprocess.call(['sudo', '/usr/local/sbin/raveberry/restart_mopidy'])
         return HttpResponse('Disconnected')

@@ -54,7 +54,7 @@ def run_server():
         subprocess.check_call(f'pgrep -u {os.getuid()} mopidy'.split(), stdout=subprocess.DEVNULL)
     except subprocess.CalledProcessError:
         print('mopidy not yet running, starting...')
-        subprocess.Popen(['mopidy'], stdout=subprocess.DEVNULL)
+        subprocess.Popen(['mopidy'], stderr=subprocess.DEVNULL)
         # wait for mpd to initialize
         #time.sleep(5)
     subprocess.call(['scripts/runserver.sh'])
