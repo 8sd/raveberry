@@ -16,7 +16,7 @@ if [ ! -z "$SCREEN_VISUALIZATION" ]; then
 	# to access it, add www-data to the 'render' group
 	adduser www-data render 2>/dev/null
 	if [ ! -z $DEV_USER ]; then
-		echo "Granting $DEV_USER user privileges to $SERVER_ROOT"
+		echo "Granting $DEV_USER rendering privileges"
 		adduser $DEV_USER render 2>/dev/null
 	fi
 fi
@@ -90,7 +90,8 @@ chown -R www-data:www-data .
 echo "/usr/local/sbin/raveberry/"
 echo 'www-data ALL=NOPASSWD:/usr/local/sbin/raveberry/*' | EDITOR='tee -a' visudo
 if [ ! -z $DEV_USER ]; then
-	echo "Granting $DEV_USER user privileges to $SERVER_ROOT"
+	echo "Granting $DEV_USER user privileges"
+	adduser $DEV_USER bluetooth
 	adduser $DEV_USER www-data
 fi
 
