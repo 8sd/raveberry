@@ -34,9 +34,9 @@ class Player:
 
     def __init__(self, musiq):
         self.SEEK_DISTANCE = 10 * 1000
-        self.shuffle = Setting.objects.get_or_create(key='shuffle', defaults={'value': False})[0].value == 'True'
-        self.repeat = Setting.objects.get_or_create(key='repeat', defaults={'value': False})[0].value == 'True'
-        self.autoplay = Setting.objects.get_or_create(key='autoplay', defaults={'value': False})[0].value == 'True'
+        self.shuffle = Setting.objects.get_or_create(key='shuffle', defaults={'value': 'False'})[0].value == 'True'
+        self.repeat = Setting.objects.get_or_create(key='repeat', defaults={'value': 'False'})[0].value == 'True'
+        self.autoplay = Setting.objects.get_or_create(key='autoplay', defaults={'value': 'False'})[0].value == 'True'
 
         if subprocess.call('pactl info'.split()) != 0:
             subprocess.call('pulseaudio -D'.split())
