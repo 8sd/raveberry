@@ -177,6 +177,7 @@ class Settings:
             self.bluetoothctl.stdin.flush()
             while True:
                 line = self._get_bluetoothctl_line()
+                print(line)
                 if not line:
                     break
                 # match old devices
@@ -202,7 +203,7 @@ class Settings:
                 return HttpResponseBadRequest('Currently not scanning')
             self._stop_bluetoothctl()
     @option
-    def connect_to_bluetooth_device(self, request):
+    def connect_bluetooth(self, request):
         address = request.POST.get('address')
         if self.bluetoothctl is not None:
             return HttpResponseBadRequest('Stop scanning before connecting')
@@ -263,9 +264,14 @@ class Settings:
         if error:
             return HttpResponseBadRequest(error)
 
-        # Update mpd's config to output to the bluetooth device
-        subprocess.call(['sudo', '/usr/local/sbin/raveberry/update_bluetooth_device', address])
+        #self.bluetoothctl = subprocess.call(["pactl set-default-sink 3"], stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+        self.bluetoothctl = subprocess.call('pactl set-default-sink 3'.split())
+
         return HttpResponse('Connected')
+    @option
+    def disconnect_bluetooth(self, request):
+        self.bluetoothctl = subprocess.call('pactl set-default-sink 0'.split())
+        return HttpResponse('Disconnected')
 
     @option
     def available_ssids(self, request):
