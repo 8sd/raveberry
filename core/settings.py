@@ -265,12 +265,17 @@ class Settings:
             return HttpResponseBadRequest(error)
 
         #self.bluetoothctl = subprocess.call(["pactl set-default-sink 3"], stdin=subprocess.PIPE, stdout=subprocess.PIPE)
-        self.bluetoothctl = subprocess.call('pactl set-default-sink 3'.split())
+        # TODO: get 3 from pactl list short sinks (for setups with a different number of output devices)
+        subprocess.call('pactl set-default-sink 3'.split())
+        # restart mopidy to apply audio device change
+        subprocess.call(['sudo', '/usr/local/sbin/raveberry/restart_mopidy'])
 
         return HttpResponse('Connected')
     @option
     def disconnect_bluetooth(self, request):
-        self.bluetoothctl = subprocess.call('pactl set-default-sink 0'.split())
+        subprocess.call('pactl set-default-sink 0'.split())
+        # restart mopidy to apply audio device change
+        subprocess.call(['sudo', '/usr/local/sbin/raveberry/restart_mopidy'])
         return HttpResponse('Disconnected')
 
     @option
