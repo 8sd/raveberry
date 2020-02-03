@@ -18,6 +18,7 @@ from threading import Thread
 from datetime import datetime
 from functools import wraps
 from contextlib import contextmanager
+from requests.exceptions import ConnectionError
 import os
 import time
 import random
@@ -165,7 +166,10 @@ class Player:
             self.musiq.update_state()
 
             if catch_up is None or catch_up >= 0:
-                self._wait_until_song_end()
+                if not self._wait_until_song_end():
+                    # there was a ConnectionError during waiting for the song to end
+                    # thus, we do not delete the current song but recover its state by restarting the loop
+                    continue
 
             current_song.delete()
 
@@ -194,18 +198,24 @@ class Player:
                 self.alarm_playing.clear()
 
     def _wait_until_song_end(self):
-        # wait until the song is over
+        # wait until the song is over. Returns True when finished without errors, False otherwise
         '''playback_ended = Event()
         @self.player.on_event('tracklist_changed')
         def on_tracklist_change(event):
             playback_ended.set()
         playback_ended.wait()'''
+        error = False
         while True:
             with self.mopidy_command() as allowed:
                 if allowed:
-                    if self.player.playback.get_state() == mopidy.core.PlaybackState.STOPPED:
-                        break
+                    try:
+                        if self.player.playback.get_state() == mopidy.core.PlaybackState.STOPPED:
+                            break
+                    except ConnectionError as e:
+                        # error during state get, skip until reconnected
+                        error = True
             time.sleep(0.1)
+        return not error
 
     def _handle_autoplay(self, url=None):
         if self.autoplay and models.QueuedSong.objects.count() == 0:
