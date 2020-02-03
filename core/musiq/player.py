@@ -26,6 +26,7 @@ import subprocess
 import mopidy.core
 import mopidy.backend
 from mopidyapi import MopidyAPI
+from mopidyapi.exceptions import MopidyError
 
 from core.musiq.music_provider import MusicProvider
 
@@ -211,7 +212,7 @@ class Player:
                     try:
                         if self.player.playback.get_state() == mopidy.core.PlaybackState.STOPPED:
                             break
-                    except ConnectionError as e:
+                    except (ConnectionError, MopidyError) as e:
                         # error during state get, skip until reconnected
                         error = True
             time.sleep(0.1)
