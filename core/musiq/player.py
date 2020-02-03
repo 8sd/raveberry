@@ -49,7 +49,6 @@ class Player:
         self.alarm_playing = Event()
 
         self.player = MopidyAPI()
-        self.player_backend = mopidy.backend.Backend()
         self.player_lock = Lock()
         with self.mopidy_command(important=True):
             self.player.playback.stop()
@@ -228,21 +227,17 @@ class Player:
                 self.musiq._request_music('', suggestion, None, False, archive=False, manually_requested=False)
 
 
-    # wrapper method for our mpd client that pings the mpd server before any command and reconnects if necessary. also catches protocol errors
+    # wrapper method for our mopidy client that pings the mopidy server before any command and reconnects if necessary.
     @contextmanager
     def mopidy_command(self, important=False):
         timeout = 3
         if important:
             timeout = -1
         if self.player_lock.acquire(timeout=timeout):
-            if not self.player_backend.ping():
-                # mopidy is disconnected. this never happened during testing, mopidy reconnects itself most of the time
-                # maybe reconnect or restart?
-               pass
             yield True
             self.player_lock.release()
         else:
-            print('not allowed')
+            print('mopidy command could not be executed')
             yield False
 
     # every control changes the views state and returns an empty response
