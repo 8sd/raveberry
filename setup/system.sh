@@ -35,21 +35,24 @@ if [ ! -z "$LED_VISUALIZATION" ]; then
 	fi
 fi
 
-echo "*** Configuring Mopidy ***"
+echo "*** Configuring Sound Output ***"
+echo "load-module module-native-protocol-tcp auth-ip-acl=127.0.0.1" >> /etc/pulse/default.pa
 cp --parents /etc/mopidy/mopidy.conf $BACKUP_DIR/
-echo "[audio]" >> /etc/mopidy/mopidy.conf
-echo "output = tee name=t ! queue ! pulsesink server=127.0.0.1 device=cava t. ! queue max-size-bytes=140000000 max-size-buffers=0 max-size-time=0 ! pulsesink server=127.0.0.1 device=0 ts-offset=140000000" >> /etc/mopidy/mopidy.conf
+
+if [[ ( ! -z "$LED_VISUALIZATION" || ! -z "$SCREEN_VISUALIZATION" ) ]]; then
+	cat >> /etc/pulse/default.pa <<-EOF
+		load-module module-null-sink sink_name=cava
+		update-sink-proplist cava device.description="virtual sink for cava"
+		set-default-sink 0
+	EOF
+	cp setup/mopidy.conf /etc/mopidy/mopidy.conf
+else
+	cp setup/mopidy_cava.conf /etc/mopidy/mopidy.conf
+fi
+
 amixer -q sset PCM 100%
 adduser mopidy www-data
 systemctl restart mopidy
-
-echo "*** Configuring PulseAudio ***"
-cat >> /etc/pulse/default.pa <<-EOF
-	load-module module-native-protocol-tcp auth-ip-acl=127.0.0.1
-	load-module module-null-sink sink_name=cava
-	update-sink-proplist cava device.description="virtual sink for cava"
-	set-default-sink 0
-EOF
 
 
 echo "*** Configuring Cache Directory ***"
