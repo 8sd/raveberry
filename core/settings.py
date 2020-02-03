@@ -265,8 +265,14 @@ class Settings:
             return HttpResponseBadRequest(error)
 
         #self.bluetoothctl = subprocess.call(["pactl set-default-sink 3"], stdin=subprocess.PIPE, stdout=subprocess.PIPE)
-        # TODO: get 3 from pactl list short sinks (for setups with a different number of output devices)
-        subprocess.call('pactl set-default-sink 3'.split())
+        # parse the sink number of the bluetooth device from pactl
+        sinks = subprocess.check_output('pactl list short sinks'.split(), universal_newlines=True)
+        bluetooth_sink = '2'
+        for sink in sinks.split('\n'):
+            if 'bluez' in sink:
+                bluetooth_sink = sink[0]
+                break
+        subprocess.call(f'pactl set-default-sink {bluetooth_sink}'.split())
         # restart mopidy to apply audio device change
         subprocess.call(['sudo', '/usr/local/sbin/raveberry/restart_mopidy'])
 
