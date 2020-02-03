@@ -35,11 +35,22 @@ if [ ! -z "$LED_VISUALIZATION" ]; then
 	fi
 fi
 
-echo "*** Configuring MPD ***"
-cp --parents /etc/mpd.conf $BACKUP_DIR/
-envsubst < setup/mpd.conf > /etc/mpd.conf
+echo "*** Configuring Mopidy ***"
+cp --parents /etc/mopidy/mopidy.conf $BACKUP_DIR/
+echo "[audio]" >> /etc/mopidy/mopidy.conf
+echo "output = tee name=t ! queue ! pulsesink server=127.0.0.1 device=cava t. ! queue max-size-bytes=140000000 max-size-buffers=0 max-size-time=0 ! pulsesink server=127.0.0.1 device=0 ts-offset=140000000" >> /etc/mopidy/mopidy.conf
 amixer -q sset PCM 100%
-systemctl restart mpd
+adduser mopidy www-data
+systemctl restart mopidy
+
+echo "*** Configuring PulseAudio ***"
+cat >> /etc/pulse/default.pa <<-EOF
+	load-module module-native-protocol-tcp auth-ip-acl=127.0.0.1
+	load-module module-null-sink sink_name=cava
+	update-sink-proplist cava device.description="virtual sink for cava"
+	set-default-sink 0
+EOF
+
 
 echo "*** Configuring Cache Directory ***"
 if [[ ! -z "$CACHE_DIR" ]]; then
@@ -64,6 +75,8 @@ echo "groups"
 adduser www-data spi 2>/dev/null
 adduser www-data gpio 2>/dev/null
 adduser www-data i2c 2>/dev/null
+# pulseaudio
+adduser www-data audio 2>/dev/null
 # bluetoothctl
 adduser www-data bluetooth 2>/dev/null
 echo "/var/www"

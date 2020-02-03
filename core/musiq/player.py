@@ -21,6 +21,7 @@ from contextlib import contextmanager
 import os
 import time
 import random
+import subprocess
 import mopidy.core
 import mopidy.backend
 from mopidyapi import MopidyAPI
@@ -36,6 +37,11 @@ class Player:
         self.shuffle = Setting.objects.get_or_create(key='shuffle', defaults={'value': False})[0].value == 'True'
         self.repeat = Setting.objects.get_or_create(key='repeat', defaults={'value': False})[0].value == 'True'
         self.autoplay = Setting.objects.get_or_create(key='autoplay', defaults={'value': False})[0].value == 'True'
+
+        if subprocess.call('pactl info'.split()) != 0:
+            subprocess.call('pulseaudio -D'.split())
+        #if subprocess.call('pactl info'.split(), stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL) != 0:
+        #    subprocess.call('pulseaudio -D'.split(), stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
         self.musiq = musiq
         self.queue = models.QueuedSong.objects
