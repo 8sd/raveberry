@@ -23,6 +23,7 @@ else:
         path('settings/', base.settings.index, name='settings'),
         path('accounts/', include('django.contrib.auth.urls')),
         path('login/', RedirectView.as_view(pattern_name='login', permanent=False)),
+        path('logged_in/', base.logged_in, name='logged_in'),
         path('logout/', RedirectView.as_view(pattern_name='logout', permanent=False)),
 
         path('ajax/', include([
