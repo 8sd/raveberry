@@ -178,6 +178,8 @@ class Player:
                 self.alarm_playing.set()
                 self.musiq.base.lights.alarm_started()
 
+                self.musiq.update_state()
+
                 with self.mopidy_command(important=True):
                     self.player.tracklist.add(uris=['file://'+os.path.join(settings.BASE_DIR, 'config/sounds/alarm.m4a')])
                     self.player.playback.play()
@@ -186,6 +188,7 @@ class Player:
                 self._wait_until_song_end()
 
                 self.musiq.base.lights.alarm_stopped()
+                self.musiq.update_state()
                 self.alarm_playing.clear()
 
     def _wait_until_song_end(self):
