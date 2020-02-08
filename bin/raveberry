@@ -51,7 +51,7 @@ def run_server():
     print('This is the basic raveberry version using a debug server.')
     print('To install with all features run `raveberry system-install`')
     try:
-        subprocess.check_call(f'pgrep -u {os.getuid()} mopidy'.split(), stdout=subprocess.DEVNULL)
+        subprocess.check_call(f'pgrep mopidy'.split(), stdout=subprocess.DEVNULL)
     except subprocess.CalledProcessError:
         print('mopidy not yet running, starting...')
         subprocess.Popen(['mopidy'], stderr=subprocess.DEVNULL)
