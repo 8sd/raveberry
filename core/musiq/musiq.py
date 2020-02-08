@@ -16,6 +16,7 @@ from core.musiq.suggestions import Suggestions
 from core.musiq.player import Player
 from core.musiq.song_queue import SongQueue
 from core.musiq.youtube import YoutubeProvider, NoPlaylistException, YoutubePlaylistProvider
+from core.musiq.spotify import SpotifyProvider
 import core.musiq.song_utils as song_utils
 import core.state_handler as state_handler
 
@@ -46,7 +47,8 @@ class Musiq:
         if playlist:
             provider = YoutubePlaylistProvider(self, query, key)
         else:
-            provider = YoutubeProvider(self, query, key)
+            #provider = YoutubeProvider(self, query, key)
+            provider = SpotifyProvider(self, query, key)
 
         if not provider.check_cached():
             if not provider.check_downloadable():

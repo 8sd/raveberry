@@ -274,7 +274,7 @@ class YoutubePlaylistProvider(MusicProvider):
             try:
                 list_id = YoutubePlaylistProvider.get_id_from_external_url(self.query)
                 archived_playlist = ArchivedPlaylist.objects.get(list_id=list_id)
-            except (KeyError, ArchivedSong.DoesNotExist):
+            except (KeyError, ArchivedPlaylist.DoesNotExist):
                 return False
         self.id = archived_playlist.list_id
         self.key = archived_playlist.id
@@ -393,7 +393,3 @@ class YoutubePlaylistProvider(MusicProvider):
 
         thread = threading.Thread(target=self._queue_songs, args=(ip, archived_playlist), daemon=True)
         thread.start()
-
-if __name__ == '__main__':
-    Downloader().fetch()
-

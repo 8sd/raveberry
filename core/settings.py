@@ -14,6 +14,8 @@ from core.models import PlayLog
 from core.models import RequestLog
 import core.state_handler as state_handler
 import core.musiq.song_utils as song_utils
+from core.musiq.spotify import get_spotify, SpotifyException
+from spotipy.oauth2 import SpotifyOauthError
 
 from functools import wraps
 from datetime import timedelta
@@ -21,6 +23,7 @@ from dateutil import tz
 import urllib.request
 import subprocess
 import threading
+import shutil
 import time
 import math
 import os
@@ -37,6 +40,12 @@ class Settings:
         self.downvotes_to_kick = int(Setting.objects.get_or_create(key='downvotes_to_kick', defaults={'value': 3})[0].value)
         self.max_download_size = int(Setting.objects.get_or_create(key='max_download_size', defaults={'value': 10})[0].value)
         self.max_playlist_items = int(Setting.objects.get_or_create(key='max_playlist_items', defaults={'value': 10})[0].value)
+        self.spotify_username = Setting.objects.get_or_create(key='spotify_username', defaults={'value': ''})[0].value
+        self.spotify_password = Setting.objects.get_or_create(key='spotify_password', defaults={'value': ''})[0].value
+        self.spotify_client_id = Setting.objects.get_or_create(key='spotify_client_id', defaults={'value': ''})[0].value
+        self.spotify_client_secret = Setting.objects.get_or_create(key='spotify_client_secret', defaults={'value': ''})[0].value
+
+        self._check_spotify()
         self._check_internet()
         self.bluetoothctl = None
         self.bluetooth_devices = []
@@ -86,6 +95,30 @@ class Settings:
             raise PermissionDenied
         context = self.base.context(request)
         return render(request, 'settings.html', context)
+
+    def _check_spotify(self, credentials_changed=False):
+        if credentials_changed:
+            if shutil.which('cava'):
+                # if cava is installed, use the visualization config for mopidy
+                config_file = os.path.join(settings.BASE_DIR, 'setup/mopidy_cava.conf')
+            else:
+                config_file = os.path.join(settings.BASE_DIR, 'setup/mopidy.conf')
+
+            spotify_credentials = {
+                'SPOTIFY_USERNAME': self.spotify_username,
+                'SPOTIFY_PASSWORD': self.spotify_password,
+                'SPOTIFY_CLIENT_ID': self.spotify_client_id,
+                'SPOTIFY_CLIENT_SECRET': self.spotify_client_secret,
+            }
+
+            subprocess.call(['sudo', '-E', '/usr/local/sbin/raveberry/update_mopidy_config', config_file], env=spotify_credentials)
+            subprocess.call(['sudo', '/usr/local/sbin/raveberry/restart_mopidy'])
+
+        # TODO: read from mopidy status for spotify warning
+        if True:
+            self.spotify_enabled = True
+        else:
+            self.spotify_enabled = False
 
     def _check_internet(self):
         response = subprocess.call(['ping','-c','1','-W','3','1.1.1.1'], stdout=subprocess.DEVNULL)
@@ -148,6 +181,34 @@ class Settings:
     @option
     def update_user_count(self, request):
         self.base.user_manager.update_user_count()
+
+    @option
+    def check_spotify_credentials(self, request):
+        self._check_spotify()
+    @option
+    def set_spotify_credentials(self, request):
+        username = request.POST.get('username')
+        password = request.POST.get('password')
+        client_id = request.POST.get('client_id')
+        client_secret = request.POST.get('client_secret')
+
+        if username is None or username == '' \
+                or password is None or password == '' \
+                or client_id is None or client_id == '' \
+                or client_secret is None or client_secret == '':
+            return HttpResponseBadRequest('All fields are required')
+
+        self.spotify_username = username
+        self.spotify_password = password
+        self.spotify_client_id = client_id
+        self.spotify_client_secret = client_secret
+
+        Setting.objects.filter(key='spotify_username').update(value=self.spotify_username)
+        Setting.objects.filter(key='spotify_password').update(value=self.spotify_password)
+        Setting.objects.filter(key='spotify_client_id').update(value=self.spotify_client_id)
+        Setting.objects.filter(key='spotify_client_secret').update(value=self.spotify_client_secret)
+
+        self._check_spotify(credentials_changed=True)
 
     def _get_bluetoothctl_line(self):
         # Note: this variable is not guarded by a lock. 

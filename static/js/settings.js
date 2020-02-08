@@ -14,6 +14,8 @@ updateState = function (newState) {
 	$('#max_playlist_items').val(newState.max_playlist_items);
 	$('#has_internet').prop("checked", newState.has_internet);
 
+	$('#spotify_credentials_valid').prop("checked", newState.has_internet);
+
 	$('#bluetooth_scanning').prop("checked", newState.bluetooth_scanning);
 	$.each(newState.bluetooth_devices, function(index, device) {
 		if (device.address == $('.bluetooth_device').eq(index).children().last().attr('id'))
@@ -98,6 +100,24 @@ $(document).ready(function() {
 	$('#update_user_count').on('click tap', function() {
 		$.get(urls['update_user_count']).done(function() {
 			successToast('');
+		});
+	});
+
+	$('#check_spotify_credentials').on('click tap', function() {
+		$.get(urls['check_spotify_credentials']).done(function() {
+			successToast('');
+		});
+	});
+	$('#set_spotify_credentials').on('click tap', function() {
+		$.post(urls['set_spotify_credentials'], {
+			username: $('#spotify_username').val(),
+			password: $('#spotify_password').val(),
+			client_id: $('#spotify_client_id').val(),
+			client_secret: $('#spotify_client_secret').val(),
+		}).done(function(response) {
+			successToast(response);
+		}).fail(function(response) {
+			errorToast(response.responseText);
 		});
 	});
 
