@@ -51,12 +51,10 @@ def run_server():
     print('This is the basic raveberry version using a debug server.')
     print('To install with all features run `raveberry system-install`')
     try:
-        subprocess.check_call(f'pgrep -u {os.getuid()} mpd'.split(), stdout=subprocess.DEVNULL)
+        subprocess.check_call(f'pgrep -u {os.getuid()} mopidy'.split(), stdout=subprocess.DEVNULL)
     except subprocess.CalledProcessError:
-        print('mpd not yet running, starting...')
-        #subprocess.Popen(['mpd'], stdout=subprocess.DEVNULL)
-        # wait for mpd to initialize
-        #time.sleep(5)
+        print('mopidy not yet running, starting...')
+        subprocess.Popen(['mopidy'], stderr=subprocess.DEVNULL)
     subprocess.call(['scripts/runserver.sh'])
 
 
@@ -74,8 +72,16 @@ def read_config():
 
 
 def user_install():
-    apt_packages = ['python3-pip', 'ffmpeg', 'atomicparsley', 'mpd', 'redis-server']
+    apt_packages = ['python3-pip', 'ffmpeg', 'atomicparsley', 'mopidy', 'redis-server']
     missing_packages = []
+    for package in apt_packages:
+        try:
+            subprocess.check_call(f'dpkg -s {package}'.split(), stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        except subprocess.CalledProcessError:
+            missing_packages.append(package)
+    if missing_packages:
+        print('please install missing packages: sudo apt-get install -y ' + ' '.join(missing_packages))
+        sys.exit(1)
 
     read_config()
     subprocess.call(['/bin/bash', 'setup/user_install.sh'])

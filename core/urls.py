@@ -23,6 +23,7 @@ else:
         path('settings/', base.settings.index, name='settings'),
         path('accounts/', include('django.contrib.auth.urls')),
         path('login/', RedirectView.as_view(pattern_name='login', permanent=False)),
+        path('logged_in/', base.logged_in, name='logged_in'),
         path('logout/', RedirectView.as_view(pattern_name='logout', permanent=False)),
 
         path('ajax/', include([
@@ -83,7 +84,8 @@ else:
                 path('update_user_count/', base.settings.update_user_count, name='update_user_count'),
 
                 path('set_bluetooth_scanning/', base.settings.set_bluetooth_scanning, name='set_bluetooth_scanning'),
-                path('connect_to_bluetooth_device/', base.settings.connect_to_bluetooth_device, name='connect_to_bluetooth_device'),
+                path('connect_bluetooth/', base.settings.connect_bluetooth, name='connect_bluetooth'),
+                path('disconnect_bluetooth/', base.settings.disconnect_bluetooth, name='disconnect_bluetooth'),
 
                 path('available_ssids/', base.settings.available_ssids, name='available_ssids'),
                 path('connect_to_wifi/', base.settings.connect_to_wifi, name='connect_to_wifi'),

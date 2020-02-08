@@ -177,6 +177,7 @@ class Settings:
             self.bluetoothctl.stdin.flush()
             while True:
                 line = self._get_bluetoothctl_line()
+                print(line)
                 if not line:
                     break
                 # match old devices
@@ -202,7 +203,7 @@ class Settings:
                 return HttpResponseBadRequest('Currently not scanning')
             self._stop_bluetoothctl()
     @option
-    def connect_to_bluetooth_device(self, request):
+    def connect_bluetooth(self, request):
         address = request.POST.get('address')
         if self.bluetoothctl is not None:
             return HttpResponseBadRequest('Stop scanning before connecting')
@@ -263,9 +264,24 @@ class Settings:
         if error:
             return HttpResponseBadRequest(error)
 
-        # Update mpd's config to output to the bluetooth device
-        subprocess.call(['sudo', '/usr/local/sbin/raveberry/update_bluetooth_device', address])
+        # parse the sink number of the bluetooth device from pactl
+        sinks = subprocess.check_output('pactl list short sinks'.split(), universal_newlines=True)
+        bluetooth_sink = '2'
+        for sink in sinks.split('\n'):
+            if 'bluez' in sink:
+                bluetooth_sink = sink[0]
+                break
+        subprocess.call(f'pactl set-default-sink {bluetooth_sink}'.split(), stdout=subprocess.DEVNULL)
+        # restart mopidy to apply audio device change
+        subprocess.call(['sudo', '/usr/local/sbin/raveberry/restart_mopidy'])
+
         return HttpResponse('Connected')
+    @option
+    def disconnect_bluetooth(self, request):
+        subprocess.call('pactl set-default-sink 0'.split(), stdout=subprocess.DEVNULL)
+        # restart mopidy to apply audio device change
+        subprocess.call(['sudo', '/usr/local/sbin/raveberry/restart_mopidy'])
+        return HttpResponse('Disconnected')
 
     @option
     def available_ssids(self, request):

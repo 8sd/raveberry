@@ -18,12 +18,15 @@ from threading import Thread
 from datetime import datetime
 from functools import wraps
 from contextlib import contextmanager
+from requests.exceptions import ConnectionError
 import os
 import time
 import random
+import subprocess
 import mopidy.core
 import mopidy.backend
 from mopidyapi import MopidyAPI
+from mopidyapi.exceptions import MopidyError
 
 from core.musiq.music_provider import MusicProvider
 
@@ -33,9 +36,12 @@ class Player:
 
     def __init__(self, musiq):
         self.SEEK_DISTANCE = 10 * 1000
-        self.shuffle = Setting.objects.get_or_create(key='shuffle', defaults={'value': False})[0].value == 'True'
-        self.repeat = Setting.objects.get_or_create(key='repeat', defaults={'value': False})[0].value == 'True'
-        self.autoplay = Setting.objects.get_or_create(key='autoplay', defaults={'value': False})[0].value == 'True'
+        self.shuffle = Setting.objects.get_or_create(key='shuffle', defaults={'value': 'False'})[0].value == 'True'
+        self.repeat = Setting.objects.get_or_create(key='repeat', defaults={'value': 'False'})[0].value == 'True'
+        self.autoplay = Setting.objects.get_or_create(key='autoplay', defaults={'value': 'False'})[0].value == 'True'
+
+        if subprocess.call('pactl info'.split(), stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL) != 0:
+            subprocess.call('pulseaudio -D'.split(), stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
         self.musiq = musiq
         self.queue = models.QueuedSong.objects
@@ -43,7 +49,6 @@ class Player:
         self.alarm_playing = Event()
 
         self.player = MopidyAPI()
-        self.player_backend = mopidy.backend.Backend()
         self.player_lock = Lock()
         with self.mopidy_command(important=True):
             self.player.playback.stop()
@@ -160,7 +165,10 @@ class Player:
             self.musiq.update_state()
 
             if catch_up is None or catch_up >= 0:
-                self._wait_until_song_end()
+                if not self._wait_until_song_end():
+                    # there was a ConnectionError during waiting for the song to end
+                    # thus, we do not delete the current song but recover its state by restarting the loop
+                    continue
 
             current_song.delete()
 
@@ -192,18 +200,24 @@ class Player:
                 self.alarm_playing.clear()
 
     def _wait_until_song_end(self):
-        # wait until the song is over
+        # wait until the song is over. Returns True when finished without errors, False otherwise
         '''playback_ended = Event()
         @self.player.on_event('tracklist_changed')
         def on_tracklist_change(event):
             playback_ended.set()
         playback_ended.wait()'''
+        error = False
         while True:
             with self.mopidy_command() as allowed:
                 if allowed:
-                    if self.player.playback.get_state() == mopidy.core.PlaybackState.STOPPED:
-                        break
+                    try:
+                        if self.player.playback.get_state() == mopidy.core.PlaybackState.STOPPED:
+                            break
+                    except (ConnectionError, MopidyError) as e:
+                        # error during state get, skip until reconnected
+                        error = True
             time.sleep(0.1)
+        return not error
 
     def _handle_autoplay(self, url=None):
         if self.autoplay and models.QueuedSong.objects.count() == 0:
@@ -225,21 +239,17 @@ class Player:
                 self.musiq._request_music('', suggestion, None, False, archive=False, manually_requested=False)
 
 
-    # wrapper method for our mpd client that pings the mpd server before any command and reconnects if necessary. also catches protocol errors
+    # wrapper method for our mopidy client that pings the mopidy server before any command and reconnects if necessary.
     @contextmanager
     def mopidy_command(self, important=False):
         timeout = 3
         if important:
             timeout = -1
         if self.player_lock.acquire(timeout=timeout):
-            if not self.player_backend.ping():
-                # mopidy is disconnected. this never happened during testing, mopidy reconnects itself most of the time
-                # maybe reconnect or restart?
-               pass
             yield True
             self.player_lock.release()
         else:
-            print('not allowed')
+            print('mopidy command could not be executed')
             yield False
 
     # every control changes the views state and returns an empty response
