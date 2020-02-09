@@ -15,6 +15,7 @@ class SpotifyProvider(MusicProvider):
 
     def __init__(self, musiq, query, key):
         super().__init__(musiq, query, key)
+        self.type = 'spotify'
         self.spotify_library = musiq.player.player.library
         self.metadata = dict()
 

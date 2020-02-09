@@ -168,7 +168,12 @@ class Player:
                 if not self._wait_until_song_end():
                     # there was a ConnectionError during waiting for the song to end
                     # thus, we do not delete the current song but recover its state by restarting the loop
+                    print('continuing')
                     continue
+            else:
+                with self.mopidy_command() as allowed:
+                    if allowed:
+                        self.player.playback.next()
 
             current_song.delete()
 

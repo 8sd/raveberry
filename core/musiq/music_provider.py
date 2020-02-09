@@ -32,6 +32,7 @@ class MusicProvider:
         self.query = query
         self.key = key
         self.id = None
+        self.type = 'unknown'
         self.placeholder = None
         self.error = 'error'
         self.ok_response = 'ok'

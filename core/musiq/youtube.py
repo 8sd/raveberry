@@ -81,6 +81,7 @@ class YoutubeProvider(MusicProvider):
 
     def __init__(self, musiq, query, key):
         super().__init__(musiq, query, key)
+        self.type = 'youtube'
         self.ok_response = 'song queued'
         self.info_dict = None
         self.ydl_opts = get_ydl_opts()
@@ -250,6 +251,7 @@ class YoutubePlaylistProvider(MusicProvider):
 
     def __init__(self, musiq, query, key):
         super().__init__(musiq, query, key)
+        self.type = 'youtube'
         self.ok_response = 'queueing playlist'
         self.ydl_opts = get_ydl_opts()
         del self.ydl_opts['noplaylist']

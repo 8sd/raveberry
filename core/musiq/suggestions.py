@@ -81,14 +81,15 @@ class Suggestions:
                 provider = MusicProvider.createProvider(self.musiq, external_url=song['url'])
                 cached = provider.check_cached()
                 # don't suggest online songs when we don't have internet
-                if not self.musiq.base.settings.has_internet:
-                    if not cached:
-                        continue
+                if not self.musiq.base.settings.has_internet and not cached:
+                    continue
+                if not self.musiq.base.settings.spotify_enabled and provider.type == 'spotify':
+                    continue
                 result_dict = {
                     'key': song['id'],
                     'value': song_utils.displayname(song['artist'], song['title']),
                     'counter': song['counter'],
-                    'type': 'cached' if cached else 'online',
+                    'type': provider.type
                 }
                 results.append(result_dict)
 
