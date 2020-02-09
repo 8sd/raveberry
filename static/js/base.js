@@ -223,6 +223,7 @@ $(document).ready(function() {
 		}).addClass("rippleEffect");
 	}
 	$(document).on('click tap', '.fas', ripple);
+	$(document).on('click tap', '.fab', ripple);
 
 	// Hashtag transition animation
 	let text = $('#hashtag_text_container');
@@ -354,6 +355,44 @@ $(document).ready(function() {
 			return
 		toggle_theme();
 		Cookies.set('theme', 'dark', { expires: 7 });
+	});
+
+	// spotify/youtube mode
+	function toggle_source() {
+		let old_style_link = $('#active-stylesheet').attr('href');
+		let new_style_link = $('#inactive-stylesheet').attr('href');
+		if ($('#spotify').hasClass('icon_enabled')) {
+			$('#spotify').removeClass('icon_enabled');
+			$('#spotify').addClass('icon_disabled');
+			$('#youtube').removeClass('icon_disabled');
+			$('#youtube').addClass('icon_enabled');
+		} else {
+			$('#spotify').removeClass('icon_disabled');
+			$('#spotify').addClass('icon_enabled');
+			$('#youtube').removeClass('icon_enabled');
+			$('#youtube').addClass('icon_disabled');
+		}
+	}
+
+	if (Cookies.get('source') == 'spotify') {
+		$('#spotify').addClass('icon_enabled');
+		$('#youtube').addClass('icon_disabled');
+	} else {
+		$('#spotify').addClass('icon_disabled');
+		$('#youtube').addClass('icon_enabled');
+	}
+
+	$('#spotify').on('click tap', function() {
+		if ($(this).hasClass('icon_enabled'))
+			return
+		toggle_source();
+		Cookies.set('source', 'spotify', { expires: 7 });
+	});
+	$('#youtube').on('click tap', function() {
+		if ($(this).hasClass('icon_enabled'))
+			return
+		toggle_source();
+		Cookies.set('source', 'youtube', { expires: 7 });
 	});
 
 	// request initial state update
