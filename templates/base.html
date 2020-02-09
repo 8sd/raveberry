@@ -34,8 +34,6 @@
 				'normal_icon': '{% static "graphics/raveberry_normal.png" %}',
 				'normal_light_icon': '{% static "graphics/raveberry_normal_light.png" %}',
 				'party_icon': '{% static "graphics/raveberry_rainbow.gif" %}',
-				'github_light_icon': '{% static "graphics/github_light.png" %}',
-				'github_dark_icon': '{% static "graphics/github_dark.png" %}',
 			};
 			{% if voting_system %}
 			let VOTING_SYSTEM = true;
@@ -120,8 +118,8 @@
 					</a>
 				</div>
 				<div class="menu_row">
-					<a id="github_link" target="_blank" rel="noopener noreferrer" href="https://github.com/raveberry/raveberry">
-						<img id="github_icon" height="30" src="{% static "graphics/github_dark.png" %}">
+					<a id="github_link" target="_blank" rel="noopener noreferrer" href="https://github.com/raveberry/raveberry" class="unlink">
+						<i class="fab fa-github"></i>
 					</a>
 					<div id="source_controls">
 						<i id="spotify" class="fab fa-spotify icon_disabled"></i>

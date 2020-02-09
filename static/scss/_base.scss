@@ -144,9 +144,6 @@
 #additional_presence {
 	color: theme-color('normal-text');
 }
-#github_link {
-	margin: 5px;
-}
 
 #content {
 	padding: 8px;
@@ -169,4 +166,8 @@
 
 #source_controls > i.icon_enabled#youtube {
 	color: red /*youtube red*/ !important;
+}
+
+.unlink {
+	color: theme-color("normal-text");
 }

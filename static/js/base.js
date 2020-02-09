@@ -99,10 +99,8 @@ function updateBaseState(newState) {
 		$('#favicon').attr('href', urls['dark_icon']);
 		if ($('#light_theme').hasClass('icon_enabled')) {
 			$('#navbar_icon').attr('src', urls['normal_light_icon']);
-			$('#github_icon').attr('src', urls['github_light_icon']);
 		} else {
 			$('#navbar_icon').attr('src', urls['normal_icon']);
-			$('#github_icon').attr('src', urls['github_dark_icon']);
 		}
 		$('#navbar_icon').css('visibility', 'visible');
 	}
@@ -310,7 +308,6 @@ $(document).ready(function() {
 			$('#light_theme').addClass('icon_disabled');
 			$('#dark_theme').removeClass('icon_disabled');
 			$('#dark_theme').addClass('icon_enabled');
-			$('#github_icon').attr('src', urls['github_dark_icon']);
 			if (state != null && !state.partymode) {
 				$('#navbar_icon').attr('src', urls['normal_icon']);
 			}
@@ -319,7 +316,6 @@ $(document).ready(function() {
 			$('#light_theme').addClass('icon_enabled');
 			$('#dark_theme').removeClass('icon_enabled');
 			$('#dark_theme').addClass('icon_disabled');
-			$('#github_icon').attr('src', urls['github_light_icon']);
 			if (state != null && !state.partymode) {
 				$('#navbar_icon').attr('src', urls['normal_light_icon']);
 			}
