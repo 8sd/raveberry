@@ -14,8 +14,6 @@ from core.models import PlayLog
 from core.models import RequestLog
 import core.state_handler as state_handler
 import core.musiq.song_utils as song_utils
-from core.musiq.spotify import get_spotify, SpotifyException
-from spotipy.oauth2 import SpotifyOauthError
 
 from functools import wraps
 from datetime import timedelta
@@ -61,6 +59,8 @@ class Settings:
         state_dict['max_download_size'] = self.max_download_size
         state_dict['max_playlist_items'] = self.max_playlist_items
         state_dict['has_internet'] = self.has_internet
+
+        state_dict['spotify_credentials_valid'] = self.spotify_enabled
 
         state_dict['bluetooth_scanning'] = self.bluetoothctl is not None
         state_dict['bluetooth_devices'] = self.bluetooth_devices
@@ -114,11 +114,35 @@ class Settings:
             subprocess.call(['sudo', '-E', '/usr/local/sbin/raveberry/update_mopidy_config', config_file], env=spotify_credentials)
             subprocess.call(['sudo', '/usr/local/sbin/raveberry/restart_mopidy'])
 
-        # TODO: read from mopidy status for spotify warning
-        if True:
+            # wait for mopidy to try spotify login
+            time.sleep(5)
+
+        # check the mopidy log and see if there is a spotify login error since the last restart
+        log = subprocess.check_output('journalctl -o cat -n 100 -u mopidy'.split(), universal_newlines=True)
+        login_error = False
+        response = None
+        for line in log.split('\n')[::-1]:
+            if line.startswith('ERROR') and 'spotify.session' in line:
+                login_error = True
+                response = HttpResponseBadRequest('User or Password are wrong')
+                break
+            elif line.startswith('ERROR') and 'mopidy_spotify.web' in line:
+                login_error = True
+                response = HttpResponseBadRequest('Client ID or Client Secret are wrong or expired')
+                break
+            elif line.startswith('Started Mopidy music server.'):
+                response = HttpResponse('Login successful')
+                break
+        else:
+            # there were too many lines in the log, could not determine whether there was an error
+            # leave spotify_enabled status as it is
+            return HttpResponseBadRequest('Could not check credentials')
+
+        if not login_error:
             self.spotify_enabled = True
         else:
             self.spotify_enabled = False
+        return response
 
     def _check_internet(self):
         response = subprocess.call(['ping','-c','1','-W','3','1.1.1.1'], stdout=subprocess.DEVNULL)
@@ -134,9 +158,9 @@ class Settings:
             if request.user.username != 'admin':
                 return HttpResponseForbidden()
             response = func(self, request, *args, **kwargs)
+            self.update_state()
             if response is not None:
                 return response
-            self.update_state()
             return HttpResponse()
         return wraps(func)(_decorator)
 
@@ -184,7 +208,7 @@ class Settings:
 
     @option
     def check_spotify_credentials(self, request):
-        self._check_spotify()
+        return self._check_spotify()
     @option
     def set_spotify_credentials(self, request):
         username = request.POST.get('username')
@@ -208,7 +232,7 @@ class Settings:
         Setting.objects.filter(key='spotify_client_id').update(value=self.spotify_client_id)
         Setting.objects.filter(key='spotify_client_secret').update(value=self.spotify_client_secret)
 
-        self._check_spotify(credentials_changed=True)
+        return self._check_spotify(credentials_changed=True)
 
     def _get_bluetoothctl_line(self):
         # Note: this variable is not guarded by a lock. 

@@ -4,30 +4,19 @@ from core.models import ArchivedSong, ArchivedPlaylist, PlaylistEntry, ArchivedP
 
 from urllib.parse import urlparse
 
-import spotipy
-from spotipy.oauth2 import SpotifyClientCredentials
-
-class SpotifyException(RuntimeError):
-    pass
-
-_spotify = None
-def get_spotify(settings, check_settings=True, credentials_changed=False):
-    global _spotify
-    if check_settings and not settings.spotify_enabled:
-        raise SpotifyException('Spotify not configured')
-    if _spotify is None or credentials_changed:
-        _spotify = spotipy.Spotify(client_credentials_manager=SpotifyClientCredentials())
-    return _spotify
-
 class SpotifyProvider(MusicProvider):
 
     @staticmethod
     def get_id_from_external_url(url):
         return urlparse(url).path.split('/')[-1]
 
+    @staticmethod
+    def get_id_from_internal_url(url):
+        return url.split(':')[-1]
+
     def __init__(self, musiq, query, key):
         super().__init__(musiq, query, key)
-        self.spotify = get_spotify(musiq.base.settings)
+        self.spotify_library = musiq.player.player.library
         self.metadata = dict()
 
     def check_cached(self):
@@ -46,22 +35,28 @@ class SpotifyProvider(MusicProvider):
         return False
 
     def check_downloadable(self):
-        if self.id is not None:
-            results = self.spotify.search(q=self.query, type='track', limit=1)
+        if self.id is None:
+            results = self.spotify_library.search({'any': [self.query]})
+
             try:
-                track_info = results['tracks']['items'][0]
+                track_info = results[0].tracks[0]
             except IndexError:
                 self.error = 'Song not found'
                 return False
-            self.id = track_info['id']
+            self.id = SpotifyProvider.get_id_from_internal_url(track_info.uri)
         else:
-            track_info = self.spotify.track(self.id)
+            results = self.spotify_library.search({'uri': [self.get_internal_url()]})
+            try:
+                track_info = results[0].tracks[0]
+            except IndexError:
+                self.error = 'Song not found'
+                return False
 
-        self.metadata['internal_url'] = track_info['uri']
+        self.metadata['internal_url'] = track_info.uri
         self.metadata['external_url'] = self.get_external_url()
-        self.metadata['artist'] = track_info['artist']['name']
-        self.metadata['title'] = track_info['name']
-        self.metadata['duration'] = track_info['duration_ms'] / 1000
+        self.metadata['artist'] = track_info.artists[0].name
+        self.metadata['title'] = track_info.name
+        self.metadata['duration'] = track_info.length / 1000
 
         return True
 
@@ -72,6 +67,9 @@ class SpotifyProvider(MusicProvider):
 
     def get_metadata(self):
         return self.metadata
+
+    def get_internal_url(self):
+        return 'spotify:track:' + self.id
 
     def get_external_url(self):
         return 'https://open.spotify.com/track/' + self.id
