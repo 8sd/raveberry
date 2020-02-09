@@ -6,6 +6,7 @@ packagelist=(
 	atomicparsley #thumbnail embedding
 	nginx #webserver
 	mopidy pulseaudio #player
+	pulseaudio-module-bluetooth # bluetooth playback
 	gstreamer1.0-plugins-bad # m4a playback
 	postgresql libpq-dev #database
 	redis-server #channel layer
@@ -13,8 +14,6 @@ packagelist=(
 	curl #key fetching
 )
 apt-get install -y ${packagelist[@]} || exit 1
-# Install bluetooth backend. Not required, thus as extra command that may fail
-apt-get install -y bluealsa
 
 # force system wide reinstall even if packages are present for the user by using sudo -H
 sudo -H pip3 install -r requirements.txt || exit 1

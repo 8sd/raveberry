@@ -45,9 +45,9 @@ if [[ ( ! -z "$LED_VISUALIZATION" || ! -z "$SCREEN_VISUALIZATION" ) ]]; then
 		update-sink-proplist cava device.description="virtual sink for cava"
 		set-default-sink 0
 	EOF
-	cp setup/mopidy.conf /etc/mopidy/mopidy.conf
+	envsubst < setup/mopidy.conf > /etc/mopidy/mopidy.conf
 else
-	cp setup/mopidy_cava.conf /etc/mopidy/mopidy.conf
+	envsubst < setup/mopidy_cava.conf > /etc/mopidy/mopidy.conf
 fi
 
 amixer -q sset PCM 100%
