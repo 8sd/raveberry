@@ -11,12 +11,12 @@ from django.views.decorators.csrf import csrf_exempt
 from core.models import QueuedSong
 from core.models import CurrentSong
 from core.models import ArchivedSong
-from core.musiq.music_provider import MusicProvider
+from core.musiq.music_provider import SongProvider
 from core.musiq.suggestions import Suggestions
 from core.musiq.player import Player
 from core.musiq.song_queue import SongQueue
-from core.musiq.youtube import YoutubeProvider, NoPlaylistException, YoutubePlaylistProvider
-from core.musiq.spotify import SpotifyProvider
+from core.musiq.youtube import YoutubeSongProvider, NoPlaylistException, YoutubePlaylistProvider
+from core.musiq.spotify import SpotifySongProvider, SpotifyPlaylistProvider
 import core.musiq.song_utils as song_utils
 import core.state_handler as state_handler
 
@@ -46,11 +46,13 @@ class Musiq:
     def _request_music(self, ip, query, key, playlist, archive=True, manually_requested=True):
         providers = []
         if playlist:
-            providers.append(YoutubePlaylistProvider(self, query, key))
+            if self.base.settings.spotify_enabled:
+                providers.append(SpotifyPlaylistProvider(self, query, key))
+            #providers.append(YoutubePlaylistProvider(self, query, key))
         else:
             if self.base.settings.spotify_enabled:
-                providers.append(SpotifyProvider(self, query, key))
-            providers.append(YoutubeProvider(self, query, key))
+                providers.append(SpotifySongProvider(self, query, key))
+            providers.append(YoutubeSongProvider(self, query, key))
 
         fallback = False
         for i, provider in enumerate(providers):
@@ -101,7 +103,7 @@ class Musiq:
             current_song = CurrentSong.objects.get()
         except CurrentSong.DoesNotExist:
             return HttpResponseBadRequest('Need a song to play the radio')
-        provider = MusicProvider.createProvider(self, external_url=current_song.external_url)
+        provider = SongProvider.createProvider(self, external_url=current_song.external_url)
         return provider.request_radio(ip)
 
     @csrf_exempt

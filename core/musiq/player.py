@@ -28,7 +28,7 @@ import mopidy.backend
 from mopidyapi import MopidyAPI
 from mopidyapi.exceptions import MopidyError
 
-from core.musiq.music_provider import MusicProvider
+from core.musiq.music_provider import SongProvider
 
 
 class Player:
@@ -92,7 +92,7 @@ class Player:
                 current_song = models.CurrentSong.objects.get()
 
                 # continue with the current song (approximately) where we last left
-                song_provider = MusicProvider.createProvider(self.musiq, internal_url=current_song.internal_url)
+                song_provider = SongProvider.createProvider(self.musiq, internal_url=current_song.internal_url)
                 duration = song_provider.get_metadata()['duration']
                 catch_up = round((timezone.now() - current_song.created).total_seconds() * 1000)
                 if catch_up > duration * 1000:
@@ -168,7 +168,6 @@ class Player:
                 if not self._wait_until_song_end():
                     # there was a ConnectionError during waiting for the song to end
                     # thus, we do not delete the current song but recover its state by restarting the loop
-                    print('continuing')
                     continue
             else:
                 with self.mopidy_command() as allowed:
@@ -178,7 +177,7 @@ class Player:
             current_song.delete()
 
             if self.repeat:
-                song_provider = MusicProvider.createProvider(self.musiq, internal_url=current_song.internal_url)
+                song_provider = SongProvider.createProvider(self.musiq, internal_url=current_song.internal_url)
                 self.queue.enqueue(song_provider.get_metadata(), False)
                 self.queue_semaphore.release()
             else:
@@ -234,7 +233,7 @@ class Player:
                 except (models.CurrentSong.DoesNotExist, models.CurrentSong.MultipleObjectsReturned):
                     return
 
-            provider = MusicProvider.createProvider(self.musiq, external_url=url)
+            provider = SongProvider.createProvider(self.musiq, external_url=url)
             try:
                 suggestion = provider.get_suggestion()
             except Exception as e:

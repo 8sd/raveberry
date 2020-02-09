@@ -1,10 +1,25 @@
-from core.musiq.music_provider import MusicProvider
-from core.models import ArchivedSong, ArchivedPlaylist, PlaylistEntry, ArchivedPlaylistQuery, \
-    RequestLog
+from core.musiq.music_provider import SongProvider, PlaylistProvider
+from core.models import ArchivedSong, Setting
+from mopidy_spotify.web import OAuthClient
 
 from urllib.parse import urlparse
 
-class SpotifyProvider(MusicProvider):
+from core.models import ArchivedSong, ArchivedPlaylist
+
+_web_client = None
+def get_web_client():
+    global _web_client
+    if _web_client is None:
+        client_id = Setting.objects.get(key='spotify_client_id').value
+        client_secret = Setting.objects.get(key='spotify_client_secret').value
+        _web_client = OAuthClient(
+            base_url="https://api.spotify.com/v1",
+            refresh_url="https://auth.mopidy.com/spotify/token",
+            client_id=client_id,
+            client_secret=client_secret)
+    return _web_client
+
+class SpotifySongProvider(SongProvider):
     @staticmethod
     def get_id_from_external_url(url):
         return urlparse(url).path.split('/')[-1]
@@ -18,19 +33,22 @@ class SpotifyProvider(MusicProvider):
         self.type = 'spotify'
         self.spotify_library = musiq.player.player.library
         self.metadata = dict()
+        self.web_client = get_web_client()
 
     def check_cached(self):
         if self.id is not None:
-            archived_song = ArchivedSong.objects.get(url=self.get_external_url())
+            try:
+                archived_song = ArchivedSong.objects.get(url=self.get_external_url())
+            except ArchivedSong.DoesNotExist:
+                return False
         elif self.key is not None:
             archived_song = ArchivedSong.objects.get(id=self.key)
         else:
             try:
                 archived_song = ArchivedSong.objects.get(url=self.query)
-                # TODO check for other yt url formats (youtu.be)
             except ArchivedSong.DoesNotExist:
                 return False
-        self.id = SpotifyProvider.get_id_from_external_url(archived_song.url)
+        self.id = SpotifySongProvider.get_id_from_external_url(archived_song.url)
         # Spotify songs cannot be cached and have to be streamed everytime
         return False
 
@@ -43,7 +61,7 @@ class SpotifyProvider(MusicProvider):
             except AttributeError:
                 self.error = 'Song not found'
                 return False
-            self.id = SpotifyProvider.get_id_from_internal_url(track_info.uri)
+            self.id = SpotifySongProvider.get_id_from_internal_url(track_info.uri)
             self.gather_metadata(track_info=track_info)
         else:
             self.gather_metadata()
@@ -76,3 +94,57 @@ class SpotifyProvider(MusicProvider):
 
     def get_external_url(self):
         return 'https://open.spotify.com/track/' + self.id
+
+class SpotifyPlaylistProvider(PlaylistProvider):
+
+    @staticmethod
+    def get_id_from_external_url(url):
+        if not url.startswith('spotify:playlist:'):
+            return None
+        return urlparse(url).path.split('/')[-1]
+
+    def __init__(self, musiq, query, key):
+        super().__init__(musiq, query, key)
+        self.type = 'spotify'
+        self.web_client = get_web_client()
+
+    def search_id(self):
+        result = self.web_client.get(
+            "search",
+            params={
+                'q': self.query,
+                'limit': '1',
+                'market': 'from_token',
+                'type': 'playlist',
+            },
+        )
+
+        try:
+            list_info = result['playlists']['items'][0]
+        except IndexError:
+            error = 'No playlist found'
+            return None
+
+        list_id = list_info['id']
+        self.title = list_info['name']
+
+        return list_id
+
+    def is_radio(self):
+        return False
+
+    def fetch_metadata(self):
+        # download at most 50 tracks for a playlist (spotifys maximum)
+        # for more tracks paging would need to be implemented
+        result = self.web_client.get(
+            f"playlists/{self.id}/tracks",
+            params={
+                'fields': 'items(track(external_urls(spotify)))',
+                'limit': '50',
+                'market': 'from_token',
+            },
+        )
+
+        track_infos = result['items']
+        for track_info in track_infos:
+            self.urls.append(track_info['track']['external_urls']['spotify'])

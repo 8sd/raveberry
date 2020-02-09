@@ -6,7 +6,7 @@ from django.http import HttpResponseBadRequest, JsonResponse, HttpResponse
 
 from core.models import ArchivedPlaylist, ArchivedSong
 import core.musiq.song_utils as song_utils
-from core.musiq.music_provider import MusicProvider
+from core.musiq.music_provider import SongProvider
 
 
 class Suggestions:
@@ -78,7 +78,7 @@ class Suggestions:
                 [:20]
 
             for song in remaining_songs:
-                provider = MusicProvider.createProvider(self.musiq, external_url=song['url'])
+                provider = SongProvider.createProvider(self.musiq, external_url=song['url'])
                 cached = provider.check_cached()
                 # don't suggest online songs when we don't have internet
                 if not self.musiq.base.settings.has_internet and not cached:
