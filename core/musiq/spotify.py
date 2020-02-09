@@ -40,7 +40,7 @@ class SpotifyProvider(MusicProvider):
 
             try:
                 track_info = results[0].tracks[0]
-            except IndexError:
+            except AttributeError:
                 self.error = 'Song not found'
                 return False
             self.id = SpotifyProvider.get_id_from_internal_url(track_info.uri)

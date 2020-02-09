@@ -35,7 +35,7 @@ class MusicProvider:
         self.type = 'unknown'
         self.placeholder = None
         self.error = 'error'
-        self.ok_response = 'ok'
+        self.ok_message = 'song queued'
 
         if key is None:
             self.archived = False

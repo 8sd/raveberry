@@ -44,20 +44,34 @@ class Musiq:
         self.player.start()
 
     def _request_music(self, ip, query, key, playlist, archive=True, manually_requested=True):
+        providers = []
         if playlist:
-            provider = YoutubePlaylistProvider(self, query, key)
+            providers.append(YoutubePlaylistProvider(self, query, key))
         else:
-            provider = YoutubeProvider(self, query, key)
-            #provider = SpotifyProvider(self, query, key)
+            if self.base.settings.spotify_enabled:
+                providers.append(SpotifyProvider(self, query, key))
+            providers.append(YoutubeProvider(self, query, key))
 
-        if not provider.check_cached():
-            if not provider.check_downloadable():
-                return HttpResponseBadRequest(provider.error)
-            if not provider.download(ip, archive=archive, manually_requested=manually_requested):
-                return HttpResponseBadRequest(provider.error)
-        else:
-            provider.enqueue(ip, archive=archive, manually_requested=manually_requested)
-        return HttpResponse(provider.ok_response)
+        fallback = False
+        for i, provider in enumerate(providers):
+            if not provider.check_cached():
+                if not provider.check_downloadable():
+                    # this provider cannot provide this song, use the next provider
+                    # if this was the last provider, show its error
+                    if i == len(providers) - 1:
+                        return HttpResponseBadRequest(provider.error)
+                    fallback = True
+                    continue
+                if not provider.download(ip, archive=archive, manually_requested=manually_requested):
+                    return HttpResponseBadRequest(provider.error)
+            else:
+                provider.enqueue(ip, archive=archive, manually_requested=manually_requested)
+            # the current provider could provide the song, don't try the other ones
+            break
+        message = provider.ok_message
+        if fallback:
+            message = message + ' (used fallback)'
+        return HttpResponse(message)
 
     def request_music(self, request):
         key = request.POST.get('key')
