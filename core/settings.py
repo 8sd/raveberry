@@ -19,6 +19,7 @@ from functools import wraps
 from datetime import timedelta
 from dateutil import tz
 import urllib.request
+import configparser
 import subprocess
 import threading
 import shutil
@@ -98,6 +99,26 @@ class Settings:
         return render(request, 'settings.html', context)
 
     def _check_spotify(self, credentials_changed=False):
+        if subprocess.run(['systemctl', 'is-active', 'mopidy'],  stdout=subprocess.DEVNULL).returncode:
+            return self._check_spotify_user(credentials_changed)
+        else:
+            return self._check_spotify_service(credentials_changed)
+
+    def _check_spotify_user(self, credentials_changed=False):
+        self.spotify_enabled = False
+        # TODO use credentials from settings
+        config = subprocess.run(['mopidy', 'config'], stdout=subprocess.PIPE, universal_newlines=True).stdout
+        parser = configparser.ConfigParser()
+        parser.read_string(config)
+        try:
+            if parser['spotify']['enabled'] == 'true':
+                self.spotify_enabled = True
+                return HttpResponse('Login probably successful')
+        except KeyError:
+            pass
+        return HttpResponseBadRequest('Config is invalid')
+
+    def _check_spotify_service(self, credentials_changed=False):
         if credentials_changed:
             if shutil.which('cava'):
                 # if cava is installed, use the visualization config for mopidy
