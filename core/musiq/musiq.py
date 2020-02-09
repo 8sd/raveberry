@@ -48,7 +48,7 @@ class Musiq:
         if playlist:
             if self.base.settings.spotify_enabled:
                 providers.append(SpotifyPlaylistProvider(self, query, key))
-            #providers.append(YoutubePlaylistProvider(self, query, key))
+            providers.append(YoutubePlaylistProvider(self, query, key))
         else:
             if self.base.settings.spotify_enabled:
                 providers.append(SpotifySongProvider(self, query, key))
