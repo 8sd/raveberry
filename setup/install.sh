@@ -55,54 +55,5 @@ if [[ ( ! -z "$LED_VISUALIZATION" || ! -z "$SCREEN_VISUALIZATION" ) ]] && ! type
 	cd $SERVER_ROOT
 fi
 
-if [ ! -z "$AUDIO_NORMALIZATION" ] && ! type aacgain > /dev/null 2>&1 ; then
-	echo "*** Installing aacgain ***"
-	apt-get install -y libtool
-
-	mkdir -p /opt/aacgain
-	cd /opt/aacgain
-	wget https://storage.googleapis.com/google-code-archive-downloads/v2/code.google.com/mp4v2/mp4v2-1.9.1.tar.bz2
-	tar -jxf mp4v2-1.9.1.tar.bz2
-	rm mp4v2-1.9.1.tar.bz2
-
-	wget http://downloads.sourceforge.net/sourceforge/faac/faad2-2.7.tar.bz2
-	tar -jxf faad2-2.7.tar.bz2
-	rm faad2-2.7.tar.bz2
-
-	git clone https://github.com/elfchief/mp3gain
-	git clone https://aur.archlinux.org/aacgain-cvs.git
-
-	rm -rf mp4v2 faad2
-	mv mp4v2-1.9.1 mp4v2
-	mv faad2-2.7 faad2
-	mv mp3gain mp3gain-tree
-	mv mp3gain-tree/aacgain ./
-	mv mp3gain-tree/mp3gain ./
-	cd aacgain
-
-	patch -d ../ -p1 <mp4v2.patch
-	cd ../mp4v2
-	patch -p0 <../aacgain-cvs/fix_missing_ptr_deref.patch
-	./configure
-	make libmp4v2.la
-
-	cd ../faad2
-	./configure
-	cd libfaad
-	make
-
-	cd ../../aacgain/linux
-	sed "s/patch -p0 -N <mp3gain.patch/patch -d ..\/..\/ -p2 -N <mp3gain.patch/" -i prepare.sh
-	chmod +x prepare.sh
-	./prepare.sh
-	rm -rf build
-	mkdir build
-	cd build
-	../../../configure --prefix=/usr
-	make
-	cp aacgain/aacgain /usr/bin
-	cd $SERVER_ROOT
-fi
-
 echo "*** Installing System Scripts ***"
 scripts/install_system_scripts.sh

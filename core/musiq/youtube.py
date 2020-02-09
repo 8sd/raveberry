@@ -140,15 +140,6 @@ class YoutubeProvider(MusicProvider):
             except FileNotFoundError:
                 self.musiq.base.logger.info('tried to delete ' + thumbnail + ' but does not exist')
 
-            try:
-                # tag the file with replaygain to perform volume normalization
-                subprocess.call(['aacgain', '-q', '-c', location], stdout=subprocess.DEVNULL)
-            except OSError as e:
-                if e.errno == errno.ENOENT:
-                    pass  # the aacgain package was not found. Skip normalization
-                else:
-                    raise
-
         except youtube_dl.utils.DownloadError as e:
             error = e
 
