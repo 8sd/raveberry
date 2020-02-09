@@ -121,7 +121,7 @@
 					<a id="github_link" target="_blank" rel="noopener noreferrer" href="https://github.com/raveberry/raveberry" class="unlink">
 						<i class="fab fa-github"></i>
 					</a>
-					<div id="source_controls">
+					<div id="source_controls" {%if not spotify_enabled%} style="visibility: hidden"{%endif%}>
 						<i id="spotify" class="fab fa-spotify icon_disabled"></i>
 						<i id="youtube" class="fab fa-youtube icon_disabled"></i>
 					</div>

@@ -58,6 +58,7 @@ class Base:
             'pad_enabled': self.user_manager.has_pad(request.user),
             'is_admin': self.user_manager.is_admin(request.user),
             'apk_link': self._get_apk_link(),
+            'spotify_enabled': self.settings.spotify_enabled
         }
     
     def state_dict(self):

@@ -43,6 +43,7 @@ class Settings:
         self.spotify_client_id = Setting.objects.get_or_create(key='spotify_client_id', defaults={'value': ''})[0].value
         self.spotify_client_secret = Setting.objects.get_or_create(key='spotify_client_secret', defaults={'value': ''})[0].value
 
+        self.spotify_enabled = (self.spotify_client_id != '' and self.spotify_client_secret != '')
         self._check_spotify()
         self._check_internet()
         self.bluetoothctl = None
