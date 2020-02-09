@@ -155,6 +155,9 @@ class Player:
                 playing.set()
 
             with self.mopidy_command(important=True):
+                # after a restart consume may be set to False again, so make sure it is on
+                self.player.tracklist.clear()
+                self.player.tracklist.set_consume(True)
                 self.player.tracklist.add(uris=[current_song.internal_url])
                 self.player.playback.play()
                 # mopidy can only seek when the song is playing
@@ -169,10 +172,6 @@ class Player:
                     # there was a ConnectionError during waiting for the song to end
                     # thus, we do not delete the current song but recover its state by restarting the loop
                     continue
-            else:
-                with self.mopidy_command() as allowed:
-                    if allowed:
-                        self.player.playback.next()
 
             current_song.delete()
 

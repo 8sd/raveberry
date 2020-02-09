@@ -55,6 +55,7 @@ class Musiq:
             providers.append(YoutubeSongProvider(self, query, key))
 
         fallback = False
+        used_provider = None
         for i, provider in enumerate(providers):
             if not provider.check_cached():
                 if not provider.check_downloadable():
@@ -69,8 +70,9 @@ class Musiq:
             else:
                 provider.enqueue(ip, archive=archive, manually_requested=manually_requested)
             # the current provider could provide the song, don't try the other ones
+            used_provider = provider
             break
-        message = provider.ok_message
+        message = used_provider.ok_message
         if fallback:
             message = message + ' (used fallback)'
         return HttpResponse(message)
