@@ -5,7 +5,6 @@ from core.models import ArchivedSong, ArchivedPlaylist, PlaylistEntry, ArchivedP
 from urllib.parse import urlparse
 
 class SpotifyProvider(MusicProvider):
-
     @staticmethod
     def get_id_from_external_url(url):
         return urlparse(url).path.split('/')[-1]
@@ -44,19 +43,9 @@ class SpotifyProvider(MusicProvider):
                 self.error = 'Song not found'
                 return False
             self.id = SpotifyProvider.get_id_from_internal_url(track_info.uri)
+            self.gather_metadata(track_info=track_info)
         else:
-            results = self.spotify_library.search({'uri': [self.get_internal_url()]})
-            try:
-                track_info = results[0].tracks[0]
-            except IndexError:
-                self.error = 'Song not found'
-                return False
-
-        self.metadata['internal_url'] = track_info.uri
-        self.metadata['external_url'] = self.get_external_url()
-        self.metadata['artist'] = track_info.artists[0].name
-        self.metadata['title'] = track_info.name
-        self.metadata['duration'] = track_info.length / 1000
+            self.gather_metadata()
 
         return True
 
@@ -65,7 +54,20 @@ class SpotifyProvider(MusicProvider):
         # spotify need to be streamed, no download possible
         return True
 
+    def gather_metadata(self, track_info=None):
+        if not track_info:
+            results = self.spotify_library.search({'uri': [self.get_internal_url()]})
+            track_info = results[0].tracks[0]
+
+        self.metadata['internal_url'] = track_info.uri
+        self.metadata['external_url'] = self.get_external_url()
+        self.metadata['artist'] = track_info.artists[0].name
+        self.metadata['title'] = track_info.name
+        self.metadata['duration'] = track_info.length / 1000
+
     def get_metadata(self):
+        if not self.metadata:
+            self.gather_metadata()
         return self.metadata
 
     def get_internal_url(self):

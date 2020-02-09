@@ -72,15 +72,6 @@ class Downloader:
 
 class YoutubeProvider(MusicProvider):
     @staticmethod
-    def create(musiq, internal_url=None, external_url=None):
-        provider = YoutubeProvider(musiq, None, None)
-        if internal_url is not None:
-            provider.id = YoutubeProvider.get_id_from_internal_url(internal_url)
-        elif external_url is not None:
-            provider.id = YoutubeProvider.get_id_from_external_url(external_url)
-        return provider
-
-    @staticmethod
     def get_id_from_external_url(url):
         return parse_qs(urlparse(url).query)['v'][0]
 

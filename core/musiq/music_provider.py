@@ -10,10 +10,22 @@ class MusicProvider:
 
     @staticmethod
     def createProvider(musiq, internal_url=None, external_url=None):
-        from core.musiq.youtube import YoutubeProvider
         if (internal_url is not None and internal_url.startswith('file://')) \
                 or (external_url is not None and external_url.startswith('https://www.youtube.com/')):
-            return YoutubeProvider.create(musiq, internal_url=internal_url, external_url=external_url)
+            from core.musiq.youtube import YoutubeProvider
+            provider_class = YoutubeProvider
+        elif (internal_url is not None and internal_url.startswith('spotify:')) \
+                or (external_url is not None and external_url.startswith('https://open.spotify.com/')):
+            from core.musiq.spotify import SpotifyProvider
+            provider_class = SpotifyProvider
+        else:
+            raise NotImplemented(f'No provider for given song: {internal_url}, {external_url}')
+        provider = provider_class(musiq, None, None)
+        if internal_url is not None:
+            provider.id = provider_class.get_id_from_internal_url(internal_url)
+        elif external_url is not None:
+            provider.id = provider_class.get_id_from_external_url(external_url)
+        return provider
 
     def __init__(self, musiq, query, key):
         self.musiq = musiq

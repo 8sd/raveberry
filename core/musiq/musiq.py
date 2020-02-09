@@ -47,8 +47,8 @@ class Musiq:
         if playlist:
             provider = YoutubePlaylistProvider(self, query, key)
         else:
-            #provider = YoutubeProvider(self, query, key)
-            provider = SpotifyProvider(self, query, key)
+            provider = YoutubeProvider(self, query, key)
+            #provider = SpotifyProvider(self, query, key)
 
         if not provider.check_cached():
             if not provider.check_downloadable():
