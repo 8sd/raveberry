@@ -67,6 +67,7 @@ amixer -q sset PCM 100%
 # also set volume of external sound card
 amixer -q -c 1 sset Speaker 100%
 adduser mopidy www-data
+systemctl enable mopidy
 systemctl restart mopidy
 
 
