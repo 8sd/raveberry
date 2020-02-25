@@ -55,8 +55,11 @@ else
 	FILE="/etc/sysctl.conf"
 	grep -qxF -- "$LINE" "$FILE" || echo "$LINE" >> "$FILE"
 	/usr/local/sbin/raveberry/enable_tunneling
+
 	cp --parents /etc/rc.local $BACKUP_DIR/
-	sed -i "`wc -l < /etc/rc.local`i\\iptables-restore < /etc/iptables.ipv4.nat\\" /etc/rc.local
+	LINE="iptables-restore < /etc/iptables.ipv4.nat"
+	FILE="/etc/rc.local"
+	grep -qxF -- "$LINE" "$FILE" || sed -i "`wc -l < /etc/rc.local`i\\$LINE\\" /etc/rc.local
 
 	rfkill unblock wlan
 	service dhcpcd restart
