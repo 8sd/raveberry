@@ -115,9 +115,11 @@ fi
 
 echo "periodic youtube-dl updates..."
 crontab -l > $BACKUP_DIR/crontab
-(crontab -l ; echo "0 6 * * * /usr/bin/sudo -H /usr/bin/pip3 install -U youtube-dl") | crontab -
+LINE="0 6 * * * /usr/bin/sudo -H /usr/bin/pip3 install -U youtube-dl"
+crontab -l | grep -qxF "$LINE" || (crontab -l ; echo "$LINE") | crontab -
 
 if [ ! -z "$BACKUP_COMMAND" ]; then
 	echo "*** Activating Backup Cronjob ***"
-	(crontab -l ; echo "0 5 * * * $BACKUP_COMMAND") | crontab -
+	LINE="0 5 * * * $BACKUP_COMMAND"
+	crontab -l | grep -qxF "$LINE" || (crontab -l ; echo "$LINE") | crontab -
 fi
