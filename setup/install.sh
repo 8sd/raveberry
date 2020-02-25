@@ -19,6 +19,12 @@ apt-get install -y ${packagelist[@]} || exit 1
 # force system wide reinstall even if packages are present for the user by using sudo -H
 sudo -H pip3 install -r requirements.txt || exit 1
 
+echo "*** Installing libspotify ***"
+wget -q -O - https://apt.mopidy.com/mopidy.gpg | sudo apt-key add -
+wget -q -O /etc/apt/sources.list.d/mopidy.list https://apt.mopidy.com/buster.list
+sudo apt-get update
+apt-get install -y libspotify-dev
+
 echo "*** Installing yarn ***"
 curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | apt-key add -
 echo "deb https://dl.yarnpkg.com/debian/ stable main" > /etc/apt/sources.list.d/yarn.list
