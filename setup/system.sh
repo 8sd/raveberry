@@ -2,7 +2,9 @@ cp --parents /boot/config.txt $BACKUP_DIR/
 if [ ! -z "$SCREEN_VISUALIZATION" ]; then
 	echo "*** Configuring Screen Visualization ***"
 	echo "hdmi..."
-	echo "hdmi_force_hotplug=1" >> /boot/config.txt
+	LINE="hdmi_force_hotplug=1"
+	FILE="/boot/config.txt"
+	grep -qxF -- "$LINE" "$FILE" || echo "$LINE" >> "$FILE"
 	echo "X11..."
 
 	if [[ -f /proc/device-tree/model && `cat /proc/device-tree/model` == "Raspberry Pi 4"* ]]; then
@@ -28,23 +30,34 @@ if [ ! -z "$LED_VISUALIZATION" ]; then
 	echo "spi..."
 	echo "dtparam=spi=on" >> /boot/config.txt
 	if [[ `cat /proc/device-tree/model` == "Raspberry Pi 4"* ]]; then
-		echo "core_freq=500" >> /boot/config.txt
-		echo "core_freq_min=500" >> /boot/config.txt
+		LINE="core_freq=500"
+		FILE="/boot/config.txt"
+		grep -qxF -- "$LINE" "$FILE" || echo "$LINE" >> "$FILE"
+		LINE="core_freq_min=500"
+		grep -qxF -- "$LINE" "$FILE" || echo "$LINE" >> "$FILE"
 	else
-		echo "core_freq=250" >> /boot/config.txt
+		LINE="core_freq=250"
+		FILE="/boot/config.txt"
+		grep -qxF -- "$LINE" "$FILE" || echo "$LINE" >> "$FILE"
 	fi
 fi
 
 echo "*** Configuring Sound Output ***"
-echo "load-module module-native-protocol-tcp auth-ip-acl=127.0.0.1" >> /etc/pulse/default.pa
+cp --parents /etc/pulse/default.pa $BACKUP_DIR/
+LINE="load-module module-native-protocol-tcp auth-ip-acl=127.0.0.1"
+FILE="/etc/pulse/default.pa"
+grep -qxF -- "$LINE" "$FILE" || echo "$LINE" >> "$FILE"
 cp --parents /etc/mopidy/mopidy.conf $BACKUP_DIR/
 
 if [[ ( ! -z "$LED_VISUALIZATION" || ! -z "$SCREEN_VISUALIZATION" ) ]]; then
-	cat >> /etc/pulse/default.pa <<-EOF
+	LINE=$(cat <<-EOF
 		load-module module-null-sink sink_name=cava
 		update-sink-proplist cava device.description="virtual sink for cava"
 		set-default-sink 0
 	EOF
+	)
+	FILE="/etc/pulse/default.pa"
+	grep -qxF -- "$LINE" "$FILE" || echo "$LINE" >> "$FILE"
 	envsubst < setup/mopidy.conf > /etc/mopidy/mopidy.conf
 else
 	envsubst < setup/mopidy_cava.conf > /etc/mopidy/mopidy.conf
@@ -69,7 +82,10 @@ if [[ ! -z "$CACHE_MEDIUM" ]]; then
 	mkdir -p "$CACHE_DIR"
 	eval $(blkid --match-token LABEL="$CACHE_MEDIUM" -o export | grep UUID)
 	cp --parents /etc/fstab $BACKUP_DIR/
-	echo "UUID=$UUID /mnt/$CACHE_MEDIUM vfat auto,nofail,noatime,rw,dmask=002,fmask=0113,gid=$(id -g www-data),uid=$(id -u www-data)" >> /etc/fstab
+
+	LINE="UUID=$UUID /mnt/$CACHE_MEDIUM vfat auto,nofail,noatime,rw,dmask=002,fmask=0113,gid=$(id -g www-data),uid=$(id -u www-data)"
+	FILE="/etc/fstab"
+	grep -qxF -- "$LINE" "$FILE" || echo "$LINE" >> "$FILE"
 	mount -a
 fi
 echo "$CACHE_DIR" > config/cache_dir
