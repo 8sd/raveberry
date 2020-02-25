@@ -100,9 +100,9 @@ class Settings:
 
     def _check_spotify(self, credentials_changed=False):
         if subprocess.run(['systemctl', 'is-active', 'mopidy'],  stdout=subprocess.DEVNULL).returncode:
-            return self._check_spotify_user(credentials_changed)
+            return self._check_spotify_user(credentials_changed=credentials_changed)
         else:
-            return self._check_spotify_service(credentials_changed)
+            return self._check_spotify_service(credentials_changed=credentials_changed)
 
     def _check_spotify_user(self, credentials_changed=False):
         self.spotify_enabled = False
@@ -126,14 +126,7 @@ class Settings:
             else:
                 config_file = os.path.join(settings.BASE_DIR, 'setup/mopidy.conf')
 
-            spotify_credentials = {
-                'SPOTIFY_USERNAME': self.spotify_username,
-                'SPOTIFY_PASSWORD': self.spotify_password,
-                'SPOTIFY_CLIENT_ID': self.spotify_client_id,
-                'SPOTIFY_CLIENT_SECRET': self.spotify_client_secret,
-            }
-
-            subprocess.call(['sudo', '-E', '/usr/local/sbin/raveberry/update_mopidy_config', config_file], env=spotify_credentials)
+            subprocess.call(['sudo', '/usr/local/sbin/raveberry/update_mopidy_config', config_file, self.spotify_username, self.spotify_password, self.spotify_client_id, self.spotify_client_secret])
             subprocess.call(['sudo', '/usr/local/sbin/raveberry/restart_mopidy'])
 
             # wait for mopidy to try spotify login
