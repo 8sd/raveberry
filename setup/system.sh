@@ -43,10 +43,14 @@ if [ ! -z "$LED_VISUALIZATION" ]; then
 fi
 
 echo "*** Configuring Sound Output ***"
+cp setup/pulseaudio.service /etc/systemd/system/pulseaudio.service
+
 cp --parents /etc/pulse/default.pa $BACKUP_DIR/
 LINE="load-module module-native-protocol-tcp auth-ip-acl=127.0.0.1"
-FILE="/etc/pulse/default.pa"
+FILE="/etc/pulse/system.pa"
 grep -qxF -- "$LINE" "$FILE" || echo "$LINE" >> "$FILE"
+
+adduser mopidy www-data
 cp --parents /etc/mopidy/mopidy.conf $BACKUP_DIR/
 
 if [[ ( ! -z "$LED_VISUALIZATION" || ! -z "$SCREEN_VISUALIZATION" ) ]]; then
@@ -56,7 +60,7 @@ if [[ ( ! -z "$LED_VISUALIZATION" || ! -z "$SCREEN_VISUALIZATION" ) ]]; then
 		set-default-sink 0
 	EOF
 	)
-	FILE="/etc/pulse/default.pa"
+	FILE="/etc/pulse/system.pa"
 	grep -qxF -- "$LINE" "$FILE" || echo "$LINE" >> "$FILE"
 	envsubst < setup/mopidy.conf > /etc/mopidy/mopidy.conf
 else
@@ -66,10 +70,6 @@ fi
 amixer -q sset PCM 100%
 # also set volume of external sound card
 amixer -q -c 1 sset Speaker 100%
-adduser mopidy www-data
-systemctl enable mopidy
-systemctl restart mopidy
-
 
 echo "*** Configuring Cache Directory ***"
 if [[ ! -z "$CACHE_DIR" ]]; then
@@ -99,6 +99,8 @@ adduser www-data gpio 2>/dev/null
 adduser www-data i2c 2>/dev/null
 # pulseaudio
 adduser www-data audio 2>/dev/null
+adduser www-data pulse 2>/dev/null
+adduser www-data pulse-access 2>/dev/null
 # bluetoothctl
 adduser www-data bluetooth 2>/dev/null
 echo "/var/www"
@@ -113,6 +115,11 @@ if [ ! -z $DEV_USER ]; then
 	adduser $DEV_USER bluetooth
 	adduser $DEV_USER www-data
 fi
+
+systemctl enable pulseaudio
+systemctl restart pulseaudio
+systemctl enable mopidy
+systemctl restart mopidy
 
 echo "periodic youtube-dl updates..."
 crontab -l > $BACKUP_DIR/crontab
