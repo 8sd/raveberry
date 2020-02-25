@@ -58,6 +58,7 @@ else
 	cp --parents /etc/rc.local $BACKUP_DIR/
 	sed -i "`wc -l < /etc/rc.local`i\\iptables-restore < /etc/iptables.ipv4.nat\\" /etc/rc.local
 
+	rfkill unblock wlan
 	service dhcpcd restart
 	systemctl daemon-reload
 	systemctl restart dhcpcd
