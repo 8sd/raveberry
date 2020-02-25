@@ -140,7 +140,7 @@ class Settings:
             time.sleep(5)
 
         # check the mopidy log and see if there is a spotify login error since the last restart
-        log = subprocess.check_output('journalctl -o cat -n 100 -u mopidy'.split(), universal_newlines=True)
+        log = subprocess.check_output(['sudo', '/usr/local/sbin/raveberry/read_mopidy_log'], universal_newlines=True)
         login_error = False
         response = None
         for line in log.split('\n')[::-1]:
