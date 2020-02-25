@@ -152,6 +152,10 @@ class Settings:
                 login_error = True
                 response = HttpResponseBadRequest('Client ID or Client Secret are wrong or expired')
                 break
+            if line.startswith('WARNING') and 'The extension has been automatically disabled' in line:
+                login_error = True
+                response = HttpResponseBadRequest('Configuration Error')
+                break
             elif line.startswith('Started Mopidy music server.'):
                 response = HttpResponse('Login successful')
                 break
