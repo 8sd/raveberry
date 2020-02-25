@@ -104,13 +104,17 @@ Config-file location: ''' + configfile_path)
         sys.exit(0)
 
     read_config()
-    while True:
-        admin_password = getpass.getpass('Set admin password: ')
-        admin_password_confirmed = getpass.getpass('Confirm admin password: ')
-        if admin_password == admin_password_confirmed:
-            os.environ['ADMIN_PASSWORD'] = admin_password
-            break
-        print("Passwords didn't match")
+    if os.environ['DB_BACKUP']:
+        # Using database backup, not asking for admin password
+        pass
+    else:
+        while True:
+            admin_password = getpass.getpass('Set admin password: ')
+            admin_password_confirmed = getpass.getpass('Confirm admin password: ')
+            if admin_password == admin_password_confirmed:
+                os.environ['ADMIN_PASSWORD'] = admin_password
+                break
+            print("Passwords didn't match")
     subprocess.call(['sudo', '-E', '/bin/bash', 'setup/setup.sh'])
 
 
