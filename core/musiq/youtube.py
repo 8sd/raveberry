@@ -118,7 +118,7 @@ class YoutubeSongProvider(SongProvider):
 
         size = self.info_dict['filesize']
         max_size = self.musiq.base.settings.max_download_size * 1024 * 1024
-        if max_size != 0 and song_utils.path_from_id(self.info_dict['id']) is None and (size is None or size > max_size):
+        if max_size != 0 and song_utils.path_from_id(self.info_dict['id']) is None and (size is not None and size > max_size):
             self.error = 'Song too long'
             return False
         return True
