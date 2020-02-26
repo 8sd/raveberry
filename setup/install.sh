@@ -1,3 +1,10 @@
+# this needs to be done before apt installation, so mopidy is on the newest version
+echo "*** Installing libspotify ***"
+wget -q -O - https://apt.mopidy.com/mopidy.gpg | apt-key add -
+wget -q -O /etc/apt/sources.list.d/mopidy.list https://apt.mopidy.com/buster.list
+sudo apt-get update
+apt-get install -y libspotify-dev
+
 echo "*** Installing apt Dependencies ***"
 apt-get update
 packagelist=(
@@ -15,12 +22,6 @@ packagelist=(
 	curl #key fetching
 )
 apt-get install -y ${packagelist[@]} || exit 1
-
-echo "*** Installing libspotify ***"
-wget -q -O - https://apt.mopidy.com/mopidy.gpg | sudo apt-key add -
-wget -q -O /etc/apt/sources.list.d/mopidy.list https://apt.mopidy.com/buster.list
-sudo apt-get update
-apt-get install -y libspotify-dev
 
 # force system wide reinstall even if packages are present for the user by using sudo -H
 sudo -H pip3 install -r requirements.txt || exit 1
