@@ -311,6 +311,7 @@ $(document).ready(function() {
 			if (state != null && !state.partymode) {
 				$('#navbar_icon').attr('src', urls['normal_icon']);
 			}
+			$('#shareberry_icon').attr('src', urls['shareberry_dark_icon']);
 		} else {
 			$('#light_theme').removeClass('icon_disabled');
 			$('#light_theme').addClass('icon_enabled');
@@ -319,6 +320,7 @@ $(document).ready(function() {
 			if (state != null && !state.partymode) {
 				$('#navbar_icon').attr('src', urls['normal_light_icon']);
 			}
+			$('#shareberry_icon').attr('src', urls['shareberry_light_icon']);
 		}
 		$('#active-stylesheet').attr('href', new_style_link);
 		$('#inactive-stylesheet').attr('href', old_style_link);

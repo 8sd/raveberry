@@ -34,6 +34,8 @@
 				'normal_icon': '{% static "graphics/raveberry_normal.png" %}',
 				'normal_light_icon': '{% static "graphics/raveberry_normal_light.png" %}',
 				'party_icon': '{% static "graphics/raveberry_rainbow.gif" %}',
+				'shareberry_light_icon': '{% static "graphics/shareberry_dark.png" %}',
+				'shareberry_dark_icon': '{% static "graphics/shareberry_normal.png" %}',
 			};
 			{% if voting_system %}
 			let VOTING_SYSTEM = true;
@@ -126,7 +128,7 @@
 						<i id="youtube" class="fab fa-youtube icon_disabled"></i>
 					</div>
 					<a href="{{ apk_link }}" download>
-						<i class="fas fa-mobile-alt"></i>
+						<img id="shareberry_icon" src="{% static "graphics/shareberry_normal.png" %}" height="30" alt="" onerror="this.style.visibility='hidden'">
 					</a>
 				</div>
 			<div id="presence">
