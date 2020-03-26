@@ -11,7 +11,7 @@ from django.views.decorators.csrf import csrf_exempt
 from core.models import QueuedSong
 from core.models import CurrentSong
 from core.models import ArchivedSong
-from core.musiq.music_provider import SongProvider
+from core.musiq.music_provider import SongProvider, PlaylistProvider
 from core.musiq.suggestions import Suggestions
 from core.musiq.player import Player
 from core.musiq.song_queue import SongQueue
@@ -47,9 +47,16 @@ class Musiq:
         providers = []
 
         if playlist:
-            if self.base.settings.spotify_enabled:
-                providers.append(SpotifyPlaylistProvider(self, query, key))
-            providers.append(YoutubePlaylistProvider(self, query, key))
+            if key is not None:
+                # an archived song was requested. The key determines the SongProvider (Youtube or Spotify)
+                provider = PlaylistProvider.create(self, query, key)
+                if provider is None:
+                    return HttpResponseBadRequest('No provider found for requested playlist')
+                providers.append(provider)
+            else:
+                if self.base.settings.spotify_enabled:
+                    providers.append(SpotifyPlaylistProvider(self, query, key))
+                providers.append(YoutubePlaylistProvider(self, query, key))
         else:
             if key is not None:
                 # an archived song was requested. The key determines the SongProvider (Youtube or Spotify)

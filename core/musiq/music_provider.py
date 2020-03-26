@@ -8,6 +8,7 @@ from django.db.models import F
 import threading
 import time
 
+
 class MusicProvider:
     def __init__(self, musiq, query, key):
         self.musiq = musiq
@@ -130,6 +131,30 @@ class SongProvider(MusicProvider):
         raise NotImplementedError()
 
 class PlaylistProvider(MusicProvider):
+
+    @staticmethod
+    def create(musiq, query=None, key=None):
+        if query is None:
+            musiq.base.logger.error('archived playlist requested but no query given')
+            return None
+        try:
+            archived_playlist = ArchivedPlaylist.objects.get(id=key)
+        except ArchivedPlaylist.DoesNotExist:
+            musiq.base.logger.error('archived song requested for nonexistent key')
+            return None
+
+        # use the url of the first song in the playlist to determine the platform where the playlist is from
+        first_song_url = archived_playlist.entries.first().url
+        if first_song_url.startswith('https://www.youtube.com/'):
+            from core.musiq.youtube import YoutubePlaylistProvider
+            provider_class = YoutubePlaylistProvider
+        elif first_song_url.startswith('https://open.spotify.com/'):
+            from core.musiq.spotify import SpotifyPlaylistProvider
+            provider_class = SpotifyPlaylistProvider
+        else:
+            raise NotImplemented(f'No provider for given playlist: {query}, {key}')
+        provider = provider_class(musiq, query, key)
+        return provider
 
     @staticmethod
     def get_id_from_external_url(url):
