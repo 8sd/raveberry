@@ -78,7 +78,7 @@ class Suggestions:
                 [:20]
 
             for song in remaining_songs:
-                provider = SongProvider.createProvider(self.musiq, external_url=song['url'])
+                provider = SongProvider.create(self.musiq, external_url=song['url'])
                 cached = provider.check_cached()
                 # don't suggest online songs when we don't have internet
                 if not self.musiq.base.settings.has_internet and not cached:

@@ -39,7 +39,17 @@ class MusicProvider:
 class SongProvider(MusicProvider):
 
     @staticmethod
-    def createProvider(musiq, internal_url=None, external_url=None):
+    def create(musiq, query=None, key=None, internal_url=None, external_url=None):
+        if key is not None:
+            if query is None:
+                musiq.base.logger.error('archived song requested but no query given')
+                return None
+            try:
+                archived_song = ArchivedSong.objects.get(id=key)
+            except ArchivedSong.DoesNotExist:
+                musiq.base.logger.error('archived song requested for nonexistent key')
+                return None
+            external_url = archived_song.url
         if (internal_url is not None and internal_url.startswith('file://')) \
                 or (external_url is not None and external_url.startswith('https://www.youtube.com/')):
             from core.musiq.youtube import YoutubeSongProvider
@@ -50,7 +60,7 @@ class SongProvider(MusicProvider):
             provider_class = SpotifySongProvider
         else:
             raise NotImplemented(f'No provider for given song: {internal_url}, {external_url}')
-        provider = provider_class(musiq, None, None)
+        provider = provider_class(musiq, query, key)
         if internal_url is not None:
             provider.id = provider_class.get_id_from_internal_url(internal_url)
         elif external_url is not None:
@@ -176,7 +186,7 @@ class PlaylistProvider(MusicProvider):
             if index == self.musiq.base.settings.max_playlist_items:
                 break
             # request every url in the playlist as their own url
-            song_provider = SongProvider.createProvider(self.musiq, external_url=entry.url)
+            song_provider = SongProvider.create(self.musiq, external_url=entry.url)
             song_provider.query = entry.url
 
             if not song_provider.check_cached():

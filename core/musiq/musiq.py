@@ -45,14 +45,23 @@ class Musiq:
 
     def _request_music(self, ip, query, key, playlist, archive=True, manually_requested=True):
         providers = []
+
         if playlist:
             if self.base.settings.spotify_enabled:
                 providers.append(SpotifyPlaylistProvider(self, query, key))
             providers.append(YoutubePlaylistProvider(self, query, key))
         else:
-            if self.base.settings.spotify_enabled:
-                providers.append(SpotifySongProvider(self, query, key))
-            providers.append(YoutubeSongProvider(self, query, key))
+            if key is not None:
+                # an archived song was requested. The key determines the SongProvider (Youtube or Spotify)
+                provider = SongProvider.create(self, query, key)
+                if provider is None:
+                    return HttpResponseBadRequest('No provider found for requested song')
+                providers.append(provider)
+            else:
+                # a new song was requested. Use Spotify first, then Youtube as a fallback
+                if self.base.settings.spotify_enabled:
+                    providers.append(SpotifySongProvider(self, query, key))
+                providers.append(YoutubeSongProvider(self, query, key))
 
         fallback = False
         used_provider = None
@@ -105,7 +114,7 @@ class Musiq:
             current_song = CurrentSong.objects.get()
         except CurrentSong.DoesNotExist:
             return HttpResponseBadRequest('Need a song to play the radio')
-        provider = SongProvider.createProvider(self, external_url=current_song.external_url)
+        provider = SongProvider.create(self, external_url=current_song.external_url)
         return provider.request_radio(ip)
 
     @csrf_exempt
