@@ -236,7 +236,8 @@ class Player:
                 self.musiq.base.logger.error('error during suggestions for ' + url)
                 self.musiq.base.logger.error(e)
             else:
-                self.musiq._request_music('', suggestion, None, False, archive=False, manually_requested=False)
+                #TODO: set platform according to provider suggestion
+                self.musiq._request_music('', suggestion, None, False, 'youtube', archive=False, manually_requested=False)
 
 
     # wrapper method for our mopidy client that pings the mopidy server before any command and reconnects if necessary.

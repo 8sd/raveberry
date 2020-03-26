@@ -43,7 +43,7 @@ class Musiq:
         self.player = Player(self)
         self.player.start()
 
-    def _request_music(self, ip, query, key, playlist, archive=True, manually_requested=True):
+    def _request_music(self, ip, query, key, playlist, platform, archive=True, manually_requested=True):
         providers = []
 
         if playlist:
@@ -54,8 +54,11 @@ class Musiq:
                     return HttpResponseBadRequest('No provider found for requested playlist')
                 providers.append(provider)
             else:
-                if self.base.settings.spotify_enabled:
-                    providers.append(SpotifyPlaylistProvider(self, query, key))
+                # try to use spotify if the user did not specifically request youtube
+                if platform is None or platform == 'spotify':
+                    if self.base.settings.spotify_enabled:
+                        providers.append(SpotifyPlaylistProvider(self, query, key))
+                # use Youtube as a fallback
                 providers.append(YoutubePlaylistProvider(self, query, key))
         else:
             if key is not None:
@@ -65,9 +68,11 @@ class Musiq:
                     return HttpResponseBadRequest('No provider found for requested song')
                 providers.append(provider)
             else:
-                # a new song was requested. Use Spotify first, then Youtube as a fallback
-                if self.base.settings.spotify_enabled:
-                    providers.append(SpotifySongProvider(self, query, key))
+                # try to use spotify if the user did not specifically request youtube
+                if platform is None or platform == 'spotify':
+                    if self.base.settings.spotify_enabled:
+                        providers.append(SpotifySongProvider(self, query, key))
+                # use Youtube as a fallback
                 providers.append(YoutubeSongProvider(self, query, key))
 
         fallback = False
@@ -97,6 +102,7 @@ class Musiq:
         key = request.POST.get('key')
         playlist = request.POST.get('playlist') == 'true'
         query = request.POST.get('query')
+        platform = request.POST.get('platform')
 
         # only get ip on user requests
         if self.base.settings.logging_enabled:
@@ -106,7 +112,7 @@ class Musiq:
         else:
             ip = ''
 
-        return self._request_music(ip, query, key, playlist)
+        return self._request_music(ip, query, key, playlist, platform)
 
     def request_radio(self, request):
         # only get ip on user requests
