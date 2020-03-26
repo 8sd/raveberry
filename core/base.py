@@ -70,7 +70,8 @@ class Base:
             'visitors': models.Counter.objects.get_or_create(id=1, defaults={'value': 0})[0].value,
             'lights_enabled': self.lights.loop_active.is_set(),
             'alarm': self.musiq.player.alarm_playing.is_set(),
-        }
+            'default_platform': 'spotify' if self.settings.spotify_enabled else 'youtube',
+            }
 
     def get_state(self, request):
         state = self.state_dict()

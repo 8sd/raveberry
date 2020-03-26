@@ -106,7 +106,7 @@ function updateBaseState(newState) {
 	}
 
 	if (Cookies.get('platform') === undefined) {
-		Cookies.set('platform', newState.defaultPlatform, { expires: 1 });
+		Cookies.set('platform', newState.default_platform, { expires: 1 });
 	}
 }
 
