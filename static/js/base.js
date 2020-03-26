@@ -108,6 +108,14 @@ function updateBaseState(newState) {
 	if (Cookies.get('platform') === undefined) {
 		Cookies.set('platform', newState.default_platform, { expires: 1 });
 	}
+
+	if (Cookies.get('platform') == 'spotify') {
+		$('#spotify').addClass('icon_enabled');
+		$('#youtube').addClass('icon_disabled');
+	} else {
+		$('#spotify').addClass('icon_disabled');
+		$('#youtube').addClass('icon_enabled');
+	}
 }
 
 // this default behaviors can be overwritten by individual pages
@@ -167,6 +175,108 @@ function decideScrolling(span, seconds_per_pixel, static_seconds) {
 	}
 }
 
+// spotify/youtube mode
+function toggle_platform() {
+	let old_style_link = $('#active-stylesheet').attr('href');
+	let new_style_link = $('#inactive-stylesheet').attr('href');
+	if ($('#spotify').hasClass('icon_enabled')) {
+		set_spotify_platform();
+	} else {
+		set_youtube_platform();
+	}
+}
+
+function set_spotify_platform() {
+	$('#spotify').removeClass('icon_enabled');
+	$('#spotify').addClass('icon_disabled');
+	$('#youtube').removeClass('icon_disabled');
+	$('#youtube').addClass('icon_enabled');
+}
+
+function set_youtube_platform() {
+	$('#spotify').removeClass('icon_disabled');
+	$('#spotify').addClass('icon_enabled');
+	$('#youtube').removeClass('icon_enabled');
+	$('#youtube').addClass('icon_disabled');
+}
+
+// dark/light mode
+function toggle_theme() {
+	let old_style_link = $('#active-stylesheet').attr('href');
+	let new_style_link = $('#inactive-stylesheet').attr('href');
+	if ($('#light_theme').hasClass('icon_enabled')) {
+		$('#light_theme').removeClass('icon_enabled');
+		$('#light_theme').addClass('icon_disabled');
+		$('#dark_theme').removeClass('icon_disabled');
+		$('#dark_theme').addClass('icon_enabled');
+		if (state != null && !state.partymode) {
+			$('#navbar_icon').attr('src', urls['normal_icon']);
+		}
+		$('#shareberry_icon').attr('src', urls['shareberry_dark_icon']);
+	} else {
+		$('#light_theme').removeClass('icon_disabled');
+		$('#light_theme').addClass('icon_enabled');
+		$('#dark_theme').removeClass('icon_enabled');
+		$('#dark_theme').addClass('icon_disabled');
+		if (state != null && !state.partymode) {
+			$('#navbar_icon').attr('src', urls['normal_light_icon']);
+		}
+		$('#shareberry_icon').attr('src', urls['shareberry_light_icon']);
+	}
+	$('#active-stylesheet').attr('href', new_style_link);
+	$('#inactive-stylesheet').attr('href', old_style_link);
+}
+
+function setToastHeight() {
+	$('#toast-container').css('height', window.innerHeight);
+}
+
+// add the ripple effect to clickable buttons
+function ripple() {
+	// Remove any old one
+	$(".ripple").remove();
+
+	let buttonWidth = $(this).width(),
+		buttonHeight =  $(this).height();
+	let x = null,
+		y = null;
+	if ($(this).parent().hasClass('anim-container')) {
+		x = parseInt($(this).css('margin-left')) + parseInt($(this).css('padding-left'));
+		y = parseInt($(this).css('margin-top')) + parseInt($(this).css('padding-top'));
+		// compensate one-sided margin hack
+		x += (parseInt($(this).parent().css('margin-right')) - parseInt($(this).parent().css('margin-left'))) / 3;
+
+		// Add the element to the parent element, since it does not move
+		$(this).parent().prepend("<span class='ripple'></span>");
+	} else {
+		// Setup
+		let posX = $(this).offset().left,
+			posY = $(this).offset().top;
+		// Get the center of the $(this)
+		x = $(this).position().left + parseInt($(this).css('margin-left')) + parseInt($(this).css('padding-left'));
+		y = $(this).position().top + parseInt($(this).css('margin-top')) + parseInt($(this).css('padding-top'));
+
+		// Add the element
+		$(this).prepend("<span class='ripple'></span>");
+	}
+
+	// Make it round!
+	buttonWidth = buttonHeight = Math.max(buttonWidth, buttonHeight);
+
+	// Add the ripples CSS and start the animation
+	$(".ripple").css({
+		width: buttonWidth,
+		height: buttonHeight,
+		top: y + 'px',
+		left: x + 'px'
+	}).addClass("rippleEffect");
+}
+
+// hashtag scrolling with too long tags
+function decideHashtagScrolling() {
+	decideScrolling($('#hashtag_text'), 0.030, 2);
+}
+
 $(document).ready(function() {
 	// add the csrf token to every post request
 	$.ajaxPrefilter(function(options, originalOptions, jqXHR){
@@ -185,52 +295,9 @@ $(document).ready(function() {
 		delay: 3000,
 	});
 
-	function setToastHeight() {
-		$('#toast-container').css('height', window.innerHeight);
-	}
 	$(window).on('resize', setToastHeight);
 	setToastHeight();
 
-	// add the ripple effect to clickable buttons
-	function ripple() {
-		// Remove any old one
-		$(".ripple").remove();
-
-		let buttonWidth = $(this).width(),
-			buttonHeight =  $(this).height();
-		let x = null,
-			y = null;
-		if ($(this).parent().hasClass('anim-container')) {
-			x = parseInt($(this).css('margin-left')) + parseInt($(this).css('padding-left'));
-			y = parseInt($(this).css('margin-top')) + parseInt($(this).css('padding-top'));
-			// compensate one-sided margin hack
-			x += (parseInt($(this).parent().css('margin-right')) - parseInt($(this).parent().css('margin-left'))) / 3;
-
-			// Add the element to the parent element, since it does not move
-			$(this).parent().prepend("<span class='ripple'></span>");
-		} else {
-			// Setup
-			let posX = $(this).offset().left,
-				posY = $(this).offset().top;
-			// Get the center of the $(this)
-			x = $(this).position().left + parseInt($(this).css('margin-left')) + parseInt($(this).css('padding-left'));
-			y = $(this).position().top + parseInt($(this).css('margin-top')) + parseInt($(this).css('padding-top'));
-
-			// Add the element
-			$(this).prepend("<span class='ripple'></span>");
-		}
-
-		// Make it round!
-		buttonWidth = buttonHeight = Math.max(buttonWidth, buttonHeight);
-
-		// Add the ripples CSS and start the animation
-		$(".ripple").css({
-			width: buttonWidth,
-			height: buttonHeight,
-			top: y + 'px',
-			left: x + 'px'
-		}).addClass("rippleEffect");
-	}
 	$(document).on('click tap', '.fas', ripple);
 	$(document).on('click tap', '.fab', ripple);
 
@@ -273,11 +340,6 @@ $(document).ready(function() {
 			input.focus();
 		}
 	});
-
-	// hashtag scrolling with too long tags
-	function decideHashtagScrolling() {
-		decideScrolling($('#hashtag_text'), 0.030, 2);
-	}
 	$(window).on('resize', decideHashtagScrolling);
 	decideHashtagScrolling();
 
@@ -310,33 +372,6 @@ $(document).ready(function() {
 		});
 	});
 
-	// dark/light mode
-	function toggle_theme() {
-		let old_style_link = $('#active-stylesheet').attr('href');
-		let new_style_link = $('#inactive-stylesheet').attr('href');
-		if ($('#light_theme').hasClass('icon_enabled')) {
-			$('#light_theme').removeClass('icon_enabled');
-			$('#light_theme').addClass('icon_disabled');
-			$('#dark_theme').removeClass('icon_disabled');
-			$('#dark_theme').addClass('icon_enabled');
-			if (state != null && !state.partymode) {
-				$('#navbar_icon').attr('src', urls['normal_icon']);
-			}
-			$('#shareberry_icon').attr('src', urls['shareberry_dark_icon']);
-		} else {
-			$('#light_theme').removeClass('icon_disabled');
-			$('#light_theme').addClass('icon_enabled');
-			$('#dark_theme').removeClass('icon_enabled');
-			$('#dark_theme').addClass('icon_disabled');
-			if (state != null && !state.partymode) {
-				$('#navbar_icon').attr('src', urls['normal_light_icon']);
-			}
-			$('#shareberry_icon').attr('src', urls['shareberry_light_icon']);
-		}
-		$('#active-stylesheet').attr('href', new_style_link);
-		$('#inactive-stylesheet').attr('href', old_style_link);
-	
-	}
 
 	if ($('#active-stylesheet').attr('href').endsWith('dark.css')) {
 		$('#light_theme').addClass('icon_disabled');
@@ -366,31 +401,6 @@ $(document).ready(function() {
 		Cookies.set('theme', 'dark', { expires: 7 });
 	});
 
-	// spotify/youtube mode
-	function toggle_platform() {
-		let old_style_link = $('#active-stylesheet').attr('href');
-		let new_style_link = $('#inactive-stylesheet').attr('href');
-		if ($('#spotify').hasClass('icon_enabled')) {
-			set_spotify_platform();
-		} else {
-			set_youtube_platform();
-		}
-	}
-
-	function set_spotify_platform() {
-		$('#spotify').removeClass('icon_enabled');
-		$('#spotify').addClass('icon_disabled');
-		$('#youtube').removeClass('icon_disabled');
-		$('#youtube').addClass('icon_enabled');
-	}
-
-	function set_youtube_platform() {
-		$('#spotify').removeClass('icon_disabled');
-		$('#spotify').addClass('icon_enabled');
-		$('#youtube').removeClass('icon_enabled');
-		$('#youtube').addClass('icon_disabled');
-	}
-
 	$('#spotify').on('click tap', function() {
 		if ($(this).hasClass('icon_enabled'))
 			return
@@ -406,12 +416,4 @@ $(document).ready(function() {
 
 	// request initial state update
 	getState();
-
-	if (Cookies.get('platform') == 'spotify') {
-		$('#spotify').addClass('icon_enabled');
-		$('#youtube').addClass('icon_disabled');
-	} else {
-		$('#spotify').addClass('icon_disabled');
-		$('#youtube').addClass('icon_enabled');
-	}
 });
