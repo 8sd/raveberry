@@ -8,6 +8,8 @@ from django.db.models import F
 import threading
 import time
 
+import core.musiq.song_utils as song_utils
+
 
 class MusicProvider:
     def __init__(self, musiq, query, key):
@@ -143,12 +145,11 @@ class PlaylistProvider(MusicProvider):
             musiq.base.logger.error('archived song requested for nonexistent key')
             return None
 
-        # use the url of the first song in the playlist to determine the platform where the playlist is from
-        first_song_url = archived_playlist.entries.first().url
-        if first_song_url.startswith('https://www.youtube.com/'):
+        type = song_utils.determine_playlist_type(archived_playlist)
+        if type == 'youtube':
             from core.musiq.youtube import YoutubePlaylistProvider
             provider_class = YoutubePlaylistProvider
-        elif first_song_url.startswith('https://open.spotify.com/'):
+        elif type == 'spotify':
             from core.musiq.spotify import SpotifyPlaylistProvider
             provider_class = SpotifyPlaylistProvider
         else:

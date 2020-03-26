@@ -58,11 +58,12 @@ class Suggestions:
 
             for playlist in remaining_playlists:
                 cached = False
+                archived_playlist = ArchivedPlaylist.objects.get(id=playlist['id'])
                 result_dict = {
                     'key': playlist['id'],
                     'value': playlist['title'],
                     'counter': playlist['counter'],
-                    'type': 'cached' if cached else 'online',
+                    'type': song_utils.determine_playlist_type(archived_playlist),
                 }
                 results.append(result_dict)
         else:
