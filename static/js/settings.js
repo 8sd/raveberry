@@ -1,4 +1,4 @@
-updateState = function (newState) {
+specificState = function (newState) {
 	updateBaseState(newState);
 	if (!('voting_system' in newState)) {
 		// this state is not meant for a settings update

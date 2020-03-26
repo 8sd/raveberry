@@ -111,8 +111,14 @@ function updateBaseState(newState) {
 }
 
 // this default behaviors can be overwritten by individual pages
-let updateState = function(newState) {
+let specificState;
+
+function updateState(newState) {
 	updateBaseState(newState);
+
+	if (specificState !== undefined) {
+		specificState(newState);
+	}
 }
 
 function getState() {
