@@ -86,20 +86,10 @@ class YoutubeSongProvider(SongProvider):
         self.ydl_opts = get_ydl_opts()
 
     def check_cached(self):
-        if self.id is not None:
-            try:
-                archived_song = ArchivedSong.objects.get(url=self.get_external_url())
-            except ArchivedSong.DoesNotExist:
-                return False
-        if self.key is not None:
-            archived_song = ArchivedSong.objects.get(id=self.key)
-        else:
-            try:
-                archived_song = ArchivedSong.objects.get(url=self.query)
-                # TODO check for other yt url formats (youtu.be)
-            except ArchivedSong.DoesNotExist:
-                return False
-        self.id = YoutubeSongProvider.get_id_from_external_url(archived_song.url)
+        # TODO: in case query is set but key and id is not, try to extract the id from the query
+        # example: https://youtu.be/<id>
+        if not self._check_cached():
+            return False
         return os.path.isfile(self.get_path())
 
     def check_downloadable(self):

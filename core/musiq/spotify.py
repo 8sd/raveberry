@@ -36,19 +36,8 @@ class SpotifySongProvider(SongProvider):
         self.web_client = get_web_client()
 
     def check_cached(self):
-        if self.id is not None:
-            try:
-                archived_song = ArchivedSong.objects.get(url=self.get_external_url())
-            except ArchivedSong.DoesNotExist:
-                return False
-        elif self.key is not None:
-            archived_song = ArchivedSong.objects.get(id=self.key)
-        else:
-            try:
-                archived_song = ArchivedSong.objects.get(url=self.query)
-            except ArchivedSong.DoesNotExist:
-                return False
-        self.id = SpotifySongProvider.get_id_from_external_url(archived_song.url)
+        if not self._check_cached():
+            return False
         # Spotify songs cannot be cached and have to be streamed everytime
         return False
 

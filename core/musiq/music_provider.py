@@ -66,6 +66,22 @@ class SongProvider(MusicProvider):
         else:
             self.archived = True
 
+    def _check_cached(self):
+        if self.id is not None:
+            try:
+                archived_song = ArchivedSong.objects.get(url=self.get_external_url())
+            except ArchivedSong.DoesNotExist:
+                return False
+        elif self.key is not None:
+            archived_song = ArchivedSong.objects.get(id=self.key)
+        else:
+            try:
+                archived_song = ArchivedSong.objects.get(url=self.query)
+            except ArchivedSong.DoesNotExist:
+                return False
+        self.id = self.__class__.get_id_from_external_url(archived_song.url)
+        return True
+
     def enqueue(self, ip, archive=True, manually_requested=True):
         from core.musiq.player import Player
 
