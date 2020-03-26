@@ -13,6 +13,7 @@ function keyOfElement(element) {
 function playlistEnabled() {
 	return $('#playlist_mode').hasClass('icon_enabled');
 }
+
 function disablePlaylistMode() {
 	$('#playlist_mode').removeClass('icon_enabled');
 	$('#playlist_mode').addClass('icon_disabled');
@@ -39,6 +40,7 @@ function request_archived_music(key, query) {
 			key: key,
 			query: query,
 			playlist: playlistEnabled(),
+			platform: Cookies.get('platform'),
 		}).done(function(response) {
 			successToast(response, '"' + query + '"');
 		}).fail(function(response) {
@@ -48,11 +50,13 @@ function request_archived_music(key, query) {
 	$('#music_input').val('').trigger('change');
 	disablePlaylistMode();
 }
+
 function request_new_music(query) {
 	$.post(urls['request_music'],
 		{
 			query: $('#music_input').val(),
 			playlist: playlistEnabled(),
+			platform: Cookies.get('platform'),
 		}).done(function(response) {
 			successToast(response, '"' + query + '"');
 		}).fail(function(response) {
@@ -61,7 +65,8 @@ function request_new_music(query) {
 		infoToast('searching...', '"' + query + '"');
 	$('#music_input').val('').trigger('change');
 	disablePlaylistMode();
-};
+}
+
 $(document).ready(function() {
 	$('#playlist_mode').on('click tap', function (e) {
 		if ($(this).hasClass('icon_disabled')) {

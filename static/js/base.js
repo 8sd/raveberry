@@ -356,7 +356,7 @@ $(document).ready(function() {
 	});
 
 	// spotify/youtube mode
-	function toggle_source() {
+	function toggle_platform() {
 		let old_style_link = $('#active-stylesheet').attr('href');
 		let new_style_link = $('#inactive-stylesheet').attr('href');
 		if ($('#spotify').hasClass('icon_enabled')) {
@@ -372,7 +372,7 @@ $(document).ready(function() {
 		}
 	}
 
-	if (Cookies.get('source') == 'spotify') {
+	if (Cookies.get('platform') == 'spotify') {
 		$('#spotify').addClass('icon_enabled');
 		$('#youtube').addClass('icon_disabled');
 	} else {
@@ -383,14 +383,14 @@ $(document).ready(function() {
 	$('#spotify').on('click tap', function() {
 		if ($(this).hasClass('icon_enabled'))
 			return
-		toggle_source();
-		Cookies.set('source', 'spotify', { expires: 7 });
+		toggle_platform();
+		Cookies.set('platform', 'spotify', { expires: 1 });
 	});
 	$('#youtube').on('click tap', function() {
 		if ($(this).hasClass('icon_enabled'))
 			return
-		toggle_source();
-		Cookies.set('source', 'youtube', { expires: 7 });
+		toggle_platform();
+		Cookies.set('platform', 'youtube', { expires: 1 });
 	});
 
 	// request initial state update
