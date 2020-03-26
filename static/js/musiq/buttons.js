@@ -159,7 +159,7 @@ $(document).ready(function() {
 	// info popups for songs with long text
 	$('#song_queue').on('click tap', '.queue_title', function() {
 		index = $(this).closest('.queue_entry').parent().index();
-		let url = state.song_queue[index].url;
+		let url = state.song_queue[index].external_url;
 
 		let new_modal_text = $(this).contents().clone();
 		if (new_modal_text.length > 1) {
@@ -168,7 +168,7 @@ $(document).ready(function() {
 		}
 		new_modal_text.append('<br/>');
 		$('#title_modal .modal-text').html(new_modal_text);
-		$('#youtube_link').attr('href', url);
+		$('#external_link').attr('href', url);
 		$('#title_modal').modal('show');
 	});
 	// close modals on click
